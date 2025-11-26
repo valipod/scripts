@@ -36,32 +36,64 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
         continue
     fi
 
-    # 2. Extract raw coordinates using grep
+    # 2. Initialization and Extraction
+    # --- GPS Extraction ---
     RAW_LAT=$(grep -oP '<exif:GPSLatitude>\K[^<]+' "$xmp_file_path")
     RAW_LON=$(grep -oP '<exif:GPSLongitude>\K[^<]+' "$xmp_file_path")
 
-    if [ -z "$RAW_LAT" ] || [ -z "$RAW_LON" ]; then
-        echo "  -> INFO: GPS coordinates not found in $xmp_name. Skipping."
+    # --- DateTimeOriginal Extraction ---
+    # Extract the date/time string from the exif:DateTimeOriginal tag
+    RAW_DATE_TIME=$(grep -oP '<exif:DateTimeOriginal>\K[^<]+' "$xmp_file_path")
+
+    # 3. Build the ExifTool Command Dynamically
+
+    # Base command starts with quality/safety options
+    exiftool_options="-q -m -P -overwrite_original"
+
+    # --- A. Handle GPS Coordinates ---
+    if [ -n "$RAW_LAT" ] && [ -n "$RAW_LON" ]; then
+        LATITUDE_FORMATTED=$(clean_coord "$RAW_LAT")
+        LONGITUDE_FORMATTED=$(clean_coord "$RAW_LON")
+
+        echo "  -> XMP Coords: Lat $LATITUDE_FORMATTED, Lon $LONGITUDE_FORMATTED"
+
+        exiftool_options="$exiftool_options -GPSLatitude=\"$LATITUDE_FORMATTED\" -GPSLongitude=\"$LONGITUDE_FORMATTED\""
+        GPS_UPDATED=true
+    else
+        echo "  -> INFO: GPS coordinates not found in $xmp_name."
+        GPS_UPDATED=false
+    fi
+
+    # --- B. Handle DateTimeOriginal ---
+    if [ -n "$RAW_DATE_TIME" ]; then
+        # ExifTool can handle the format '2025-09-20T08:45:04.620+03:00' but the EXIF standard doesn't support 
+        # the milliseconds (.620) or timezone (+03:00) in DateTimeOriginal.
+        # ExifTool automatically cleans this up. We will use the raw string.
+
+        # We also write to CreateDate and ModifyDate for completeness and consistency.
+        echo "  -> XMP Date: $RAW_DATE_TIME"
+
+        exiftool_options="$exiftool_options -DateTimeOriginal=\"$RAW_DATE_TIME\" -CreateDate=\"$RAW_DATE_TIME\" -ModifyDate=\"$RAW_DATE_TIME\""
+        DATE_UPDATED=true
+    else
+        echo "  -> INFO: DateTimeOriginal not found in $xmp_name."
+        DATE_UPDATED=false
+    fi
+
+    # 4. Check if any updates are needed
+    if [ "$GPS_UPDATED" = false ] && [ "$DATE_UPDATED" = false ]; then
+        echo "  -> INFO: No GPS or DateTimeOriginal found. Skipping $xmp_name."
+        echo "---"
         continue
     fi
 
-    # 3. Clean and format the coordinates for ExifTool
-    LATITUDE_FORMATTED=$(clean_coord "$RAW_LAT")
-    LONGITUDE_FORMATTED=$(clean_coord "$RAW_LON")
-
-    echo "  -> XMP Coords: Lat $LATITUDE_FORMATTED, Lon $LONGITUDE_FORMATTED"
-
-    # 4. Use ExifTool to update the image file
-    # CRITICAL CHANGE: Removed -GPSStatus=A to eliminate the warning.
-    exiftool_command="exiftool -q -m -P -overwrite_original \
-      -GPSLatitude=\"$LATITUDE_FORMATTED\" \
-      -GPSLongitude=\"$LONGITUDE_FORMATTED\" \
-      \"$image_file_path\""
+    # 5. Use ExifTool to update the image file
+    exiftool_command="exiftool $exiftool_options \"$image_file_path\""
 
     eval "$exiftool_command"
 
     if [ $? -eq 0 ]; then
-        echo "  -> ✅ SUCCESS: Baked GPS data into $image_name."
+        echo "  -> ✅ SUCCESS: Baked data into $image_name."
     else
         echo "  -> ❌ ERROR: ExifTool failed to update $image_name."
     fi
@@ -72,4 +104,3 @@ done
 
 echo "--------------------------------------------------------"
 echo "Script finished."
-
