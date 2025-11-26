@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script is now a specialized executor that requires one argument: [jpg|mp4].
+# This script is now a specialized executor that requires one argument: [jpg|JPG|mp4|mkv|mov|img|video].
 
 # 1. Capture host environment details
 USER_PWD=$(pwd)
@@ -22,38 +22,59 @@ fi
 # 4. Change to the script directory to ensure docker-compose finds the compose.yml
 cd "$SCRIPT_DIR" || exit
 
-# Define the common regex pattern for YYYY-MM-DD[space or underscore]HH-MM-SS
-# The replacement string formats it as 'YYYY:MM:DD HH:MM:SS+03:00'
-DATE_TIME_REGEX_PATTERN='\''-CreateDate<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' '
-DATE_TIME_ORIGINAL_REGEX_PATTERN='\''-DateTimeOriginal<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' '
+# Define the common ExifTool command fragments using the flexible regex
+# NOTE: The entire command is enclosed in single quotes, and the inner 
+# single quotes for the -P option are escaped with '\'' (close, escape, open).
+
+# Regex Pattern: s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/
+# This supports both 'YYYY-MM-DD HH-MM-SS' and 'YYYY-MM-DD_HH-MM-SS'
+
+# --- COMMAND DEFINITIONS ---
+
+# JPEG commands use the DateTimeOriginal tag
+JPEG_LOWER_CMD='exiftool -n -overwrite_original_in_place -P '\''-DateTimeOriginal<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' *.jpg'
+JPEG_UPPER_CMD='exiftool -n -overwrite_original_in_place -P '\''-DateTimeOriginal<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' *.JPG'
+
+# Video commands use the CreateDate tag
+MP4_CMD='exiftool -v -n -overwrite_original_in_place -P '\''-CreateDate<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' *.mp4'
+MKV_CMD='exiftool -n -overwrite_original_in_place -P '\''-CreateDate<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' *.mkv'
+MOV_CMD='exiftool -n -overwrite_original_in_place -P '\''-CreateDate<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' *.mov'
 
 # 5. Define the command based on the file type
 case "$FILE_TYPE" in
+    # Single File Type Execution (Original behavior, using defined variables)
     jpg)
-#        EXIF_CMD='exec exiftool -n -overwrite_original_in_place -a -G1 -s -datetimeoriginal\<filename -d "%Y-%m-%d %H-%M-%S-%%c.jpg" -offsettimeoriginal=+03:00 *.jpg'
-#               EXIF_CMD="exec exiftool -n -overwrite_original_in_place -P ${DATE_TIME_ORIGINAL_REGEX_PATTERN} *.jpg"
-                EXIF_CMD='exec exiftool -n -overwrite_original_in_place -P '\''-DateTimeOriginal<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' *.jpg'
+        EXIF_CMD="exec ${JPEG_LOWER_CMD}"
         ;;
     JPG)
-#        EXIF_CMD='exec exiftool -n -overwrite_original_in_place -a -G1 -s -datetimeoriginal\<filename -d "%Y-%m-%d %H-%M-%S-%%c.JPG" -offsettimeoriginal=+03:00 *.JPG'
-                EXIF_CMD='exec exiftool -n -overwrite_original_in_place -P '\''-DateTimeOriginal<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' *.JPG'
+        EXIF_CMD="exec ${JPEG_UPPER_CMD}"
         ;;
     mp4)
-        EXIF_CMD='exec exiftool -n -overwrite_original_in_place -P '\''-CreateDate<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' *.mp4'
-                ;;
+        EXIF_CMD="exec ${MP4_CMD}"
+        ;;
     mkv)
-        EXIF_CMD='exec exiftool -n -overwrite_original_in_place -P '\''-CreateDate<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' *.mkv'
+        EXIF_CMD="exec ${MKV_CMD}"
         ;;
     mov)
-        EXIF_CMD='exec exiftool -n -overwrite_original_in_place -P '\''-CreateDate<${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/$1:$2:$3 $4:$5:$6+03:00/}'\'' *.mov'
+        EXIF_CMD="exec ${MOV_CMD}"
         ;;
+
+    # --- NEW BATCH EXECUTION MODES ---
+    img)
+        # Execute both JPEG commands separated by a semicolon (;)
+        EXIF_CMD="exec ${JPEG_LOWER_CMD} ; ${JPEG_UPPER_CMD}"
+        ;;
+    video)
+        # Execute all video commands separated by a semicolon (;)
+        EXIF_CMD="exec ${MP4_CMD} ; ${MKV_CMD} ; ${MOV_CMD}"
+        ;;
+    # ---------------------------------
+
     *)
-        # Should be caught by the earlier validation, but here for safety
-        echo "Internal Error: Invalid command selected." >&2
+        echo "Error: Invalid file type specified. Supported types: jpg, JPG, mp4, mkv, mov, img, video." >&2
         exit 1
         ;;
 esac
-
 
 # 6. Execute the Docker command
 docker-compose run --rm \
