@@ -56,28 +56,26 @@ CONTAINER_SCRIPT=$(cat <<EOF
 COMMANDS_EXECUTED=0
 
 echo "--- Starting Image Processing (Timezone: ${TIMEZONE_OFFSET}) ---"
+# Check for lowercase png files
+if ls *.png >/dev/null 2>&1; then echo "-> Executing exiftool for *.png files"; ${JPEG_DATE_CMD} *.png ; COMMANDS_EXECUTED=1 ; fi
 # Check for lowercase jpg files
 if ls *.jpg >/dev/null 2>&1; then echo "-> Executing exiftool for *.jpg files"; ${JPEG_DATE_CMD} *.jpg ; COMMANDS_EXECUTED=1 ; fi
 # Check for lowercase jpeg files
 if ls *.jpeg >/dev/null 2>&1; then echo "-> Executing exiftool for *.jpeg files"; ${JPEG_DATE_CMD} *.jpeg ; COMMANDS_EXECUTED=1 ; fi
 # Check for uppercase JPG files
 if ls *.JPG >/dev/null 2>&1; then echo "-> Executing exiftool for *.JPG files"; ${JPEG_DATE_CMD} *.JPG ; COMMANDS_EXECUTED=1 ; fi
-if [ "\$COMMANDS_EXECUTED" -eq 0 ]; then echo "No image files found to process (jpg, jpeg)." ; fi
+if [ "\$COMMANDS_EXECUTED" -eq 0 ]; then echo "No image files found to process (jpg, jpeg, png)." ; fi
 
 echo "--- Starting Video Processing (Timezone: ${TIMEZONE_OFFSET}) ---"
 # Check for lowercase mp4 files
 if ls *.mp4 >/dev/null 2>&1; then echo "-> Executing exiftool for *.mp4 files"; ${VIDEO_DATE_CMD} *.mp4 ; COMMANDS_EXECUTED=1 ; fi
 # Check for uppercase MP4 files
 if ls *.MP4 >/dev/null 2>&1; then echo "-> Executing exiftool for *.MP4 files"; ${VIDEO_DATE_CMD} *.MP4 ; COMMANDS_EXECUTED=1 ; fi
-# Check for lowercase mkv files
-if ls *.mkv >/dev/null 2>&1; then echo "-> Executing exiftool for *.mkv files"; ${VIDEO_DATE_CMD} *.mkv ; COMMANDS_EXECUTED=1 ; fi
-# Check for uppercase MKV files
-if ls *.MKV >/dev/null 2>&1; then echo "-> Executing exiftool for *.MKV files"; ${VIDEO_DATE_CMD} *.MKV ; COMMANDS_EXECUTED=1 ; fi
 # Check for lowercase mov files
 if ls *.mov >/dev/null 2>&1; then echo "-> Executing exiftool for *.mov files"; ${VIDEO_DATE_CMD} *.mov ; COMMANDS_EXECUTED=1 ; fi
 # Check for uppercase MOV files
 if ls *.MOV >/dev/null 2>&1; then echo "-> Executing exiftool for *.MOV files"; ${VIDEO_DATE_CMD} *.MOV ; COMMANDS_EXECUTED=1 ; fi
-if [ "\$COMMANDS_EXECUTED" -eq 0 ]; then echo "No video files found to process (mp4, mkv, mov)." ; fi
+if [ "\$COMMANDS_EXECUTED" -eq 0 ]; then echo "No video files found to process (mp4, mov)." ; fi
 EOF
 )
 

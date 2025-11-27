@@ -3,6 +3,7 @@
 # --- Configuration ---
 EXISTING_SCRIPT="/var/services/homes/dumitval/bin/exiftool.sh"
 
+# Set the root directory for searching
 ROOT_DIR="$(pwd)"
 
 # --- Parameter Check and Error Handling ---
@@ -25,12 +26,27 @@ fi
 
 echo "Starting recursive media processing with timezone: $TIMEZONE_PARAM"
 echo "Target script: $EXISTING_SCRIPT"
+echo "Searching recursively starting from: $ROOT_DIR"
 echo "---"
 
-find "$ROOT_DIR" -type d -print0 | while IFS= read -r -d $'\0' DIR; do
-    echo "-> Entering directory: $DIR"
+# 1. PROCESS THE CURRENT DIRECTORY ($ROOT_DIR)
+echo "-> Processing current directory: $ROOT_DIR"
+(
+    # We are already in $ROOT_DIR, so just execute the script
+    "$EXISTING_SCRIPT" "$TIMEZONE_PARAM"
 
-    # Change into the directory for this iteration
+    if [ $? -ne 0 ]; then
+        echo "Warning: Script failed in $ROOT_DIR. (Exit code: $?)"
+    fi
+)
+echo "---"
+
+# 2. PROCESS ALL SUBDIRECTORIES
+# The -mindepth 1 flag is used here to prevent processing $ROOT_DIR a second time.
+find "$ROOT_DIR" -mindepth 1 -type d -print0 | while IFS= read -r -d $'\0' DIR; do
+    echo "-> Entering subdirectory: $DIR"
+
+    # Change into the subdirectory for this iteration
     (
         cd "$DIR" || exit
 
