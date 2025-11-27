@@ -42,7 +42,7 @@ cd "$SCRIPT_DIR" || exit
 
 # --- Define Command Fragments ---
 # IMPORTANT: The timezone offset is now injected into the command fragments.
-# The filename pattern is (\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}) which matches 
+# The filename pattern is (\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}) which matches
 # 'YYYY-MM-DD HH-MM-SS' or 'YYYY-MM-DD_HH-MM-SS'
 # The result is YYYY:MM:DD HH:MM:SS[TIMEZONE_OFFSET]
 
@@ -85,7 +85,7 @@ EOF
 # 8. Execute the Docker command
 FINAL_CMD="$CONTAINER_SCRIPT"
 
-docker-compose run --rm \
+docker-compose run --rm -T \
     --user "${HOST_UID}":"${HOST_GID}" \
     -w /data \
     -v "${USER_PWD}":/data \
