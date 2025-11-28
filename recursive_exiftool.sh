@@ -42,13 +42,31 @@ echo "-> Processing current directory: $ROOT_DIR"
 echo "---"
 
 # 2. PROCESS ALL SUBDIRECTORIES
-# The -mindepth 1 flag is used here to prevent processing $ROOT_DIR a second time.
-find "$ROOT_DIR" -mindepth 1 -type d -print0 | while IFS= read -r -d $'\0' DIR; do
+echo "-> Collecting all subdirectories..."
+
+# 1. Use mapfile (or readarray) to safely store all directories into an array.
+# This avoids the subshell issue of the find | while pipeline.
+mapfile -d $'\0' DIRS < <(find "$ROOT_DIR" -mindepth 1 -type d -print0)
+
+# 2. Iterate through the array of directories
+for DIR in "${DIRS[@]}"; do
+    # Strip any potential leading/trailing whitespace/null characters from the directory name
+    DIR=$(echo "$DIR" | tr -d '\0' | xargs echo -n)
+
+    # Skip empty lines that might result from trimming or bad find output
+    if [ -z "$DIR" ]; then
+        continue
+    fi
+
     echo "-> Entering subdirectory: $DIR"
 
-    # Change into the subdirectory for this iteration
+    # Use a subshell to change directory, but handle the exit gracefully.
+    # The 'exit' is removed to prevent it from killing the main loop.
     (
-        cd "$DIR" || exit
+        if ! cd "$DIR"; then
+            echo "Error: Could not enter directory '$DIR'. Skipping."
+            exit 1 # Exit the subshell, but the main 'for' loop continues
+        fi
 
         # Execute the existing script
         "$EXISTING_SCRIPT" "$TIMEZONE_PARAM"
