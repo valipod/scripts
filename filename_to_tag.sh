@@ -3,10 +3,12 @@
 # This script now requires a single parameter: the timezone offset (e.g., +3, -5, +02:00).
 # Example execution: exiftool.sh +03:00
 
-# 1. Capture host environment details
-USER_PWD=$(pwd)
-HOST_UID=$(id -u)
-HOST_GID=$(id -g)
+# --- Define Constants ---
+CONTAINER_NAME="exiftool" 
+CONTAINER_BASE_DIR="/volume1"
+
+# 1. Capture host environment details (Reduced set)
+CONTAINER_WORK_DIR=$(pwd)
 
 # 2. Get the timezone offset parameter
 TIMEZONE_OFFSET=$1
@@ -20,38 +22,32 @@ if [ -z "$TIMEZONE_OFFSET" ]; then
 fi
 
 # Ensure the timezone offset is in a valid format (e.g., +3, -05, +02:00, -5:30)
-# This checks for a sign (+ or -) followed by digits, optionally with a colon and more digits.
 if ! [[ "$TIMEZONE_OFFSET" =~ ^[+-][0-9]{1,2}(:[0-9]{2})?$ ]]; then
     echo "Error: Invalid timezone offset format: $TIMEZONE_OFFSET" >&2
     echo "Please use format like +3, -05, +02:00, or -5:30." >&2
     exit 1
 fi
 
-# 4. Define the absolute path to the compose configuration
-SCRIPT_DIR="/volume1/docker/exiftool"
-
-# 5. Validation (Directory Check)
-if [ ! -d "$SCRIPT_DIR" ]; then
-    echo "Error: ExifTool project directory not found at $SCRIPT_DIR" >&2
-    echo "Please edit exiftool.sh and update the SCRIPT_DIR variable." >&2
+# 4. Validation (Directory Check)
+# Check if the current path is under the container's global mount point
+if [[ "$CONTAINER_WORK_DIR" != /volume1* ]]; then
+    echo "Error: Current directory $CONTAINER_WORK_DIR is not under the container's global mount point $CONTAINER_BASE_DIR" >&2
     exit 1
 fi
 
-# 6. Change to the script directory to ensure docker-compose finds the compose.yml
-cd "$SCRIPT_DIR" || exit
-
-# --- Define Command Fragments ---
-# The filename pattern is (\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}) which matches
-# 'YYYY-MM-DD HH-MM-SS' or 'YYYY-MM-DD_HH-MM-SS'
+# 5. Define Command Fragments
+# Double quotes are escaped (\") for execution inside sh -c
 # The result is YYYY:MM:DD HH:MM:SS[TIMEZONE_OFFSET]
 
-# Set DateTimeOriginal for images (JPEG format)
-JPEG_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-DateTimeOriginal<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' "
+# Set DateTimeOriginal for images (JPEG format), if missing
+# Use single quotes around the ExifTool substitution block to protect it from the outer shell
+JPEG_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-DateTimeOriginal<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-CreateDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' "
 
-# Set CreateDate for videos
+# Set CreateDate for videos, if missing
+# Use single quotes around the ExifTool substitution block to protect it from the outer shell
 VIDEO_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-CreateDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' "
 
-# 7. Build the combined execution script ('all' media processing)
+# 6. Build the combined execution script ('all' media processing)
 CONTAINER_SCRIPT=$(cat <<EOF
 COMMANDS_EXECUTED=0
 
@@ -82,10 +78,6 @@ EOF
 # 8. Execute the Docker command
 FINAL_CMD="$CONTAINER_SCRIPT"
 
-docker-compose run --rm -T \
-    --user "${HOST_UID}":"${HOST_GID}" \
-    -w /data \
-    -v "${USER_PWD}":/data \
-    exiftool \
-    sh -c "$FINAL_CMD"
+# Revert to sh -c
+docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" sh -c "$FINAL_CMD"
 
