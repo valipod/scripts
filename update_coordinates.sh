@@ -4,12 +4,20 @@
 # The local directory path containing the XMP files and images.
 LOCAL_PHOTO_DIR="."
 
+# Docker container configuration
+CONTAINER_NAME="exiftool"
+CONTAINER_BASE_DIR="/volume1"
+
 # --- MAIN SCRIPT LOGIC ---
 echo "XMP Sidecar to EXIF Sync Started..."
 echo "--------------------------------------------------------"
 
-if ! command -v exiftool &> /dev/null; then
-    echo "ERROR: exiftool is not installed. Please install it to continue."
+# Get the current working directory for docker exec
+CONTAINER_WORK_DIR=$(pwd)
+
+# Validate that the current directory is under the container's mount point
+if [[ "$CONTAINER_WORK_DIR" != /volume1* ]]; then
+    echo "Error: Current directory $CONTAINER_WORK_DIR is not under the container's global mount point $CONTAINER_BASE_DIR" >&2
     exit 1
 fi
 
@@ -87,10 +95,10 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
         continue
     fi
 
-    # 5. Use ExifTool to update the image file
+    # 5. Use ExifTool via Docker to update the image file
     exiftool_command="exiftool $exiftool_options \"$image_file_path\""
 
-    eval "$exiftool_command"
+    docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" sh -c "$exiftool_command"
 
     if [ $? -eq 0 ]; then
         echo "  -> ✅ SUCCESS: Baked data into $image_name."

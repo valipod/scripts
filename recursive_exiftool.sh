@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- Configuration ---
-EXISTING_SCRIPT="/var/services/homes/dumitval/bin/exiftool.sh"
+EXIFTOOL_SCRIPT="/var/services/homes/dumitval/bin/exiftool.sh"
 
 # Set the root directory for searching
 ROOT_DIR="$(pwd)"
@@ -16,8 +16,8 @@ if [ -z "$TIMEZONE_PARAM" ]; then
 fi
 
 # Check if the existing script is present and executable
-if [ ! -x "$EXISTING_SCRIPT" ]; then
-    echo "Error: The existing script '$EXISTING_SCRIPT' is missing or not executable."
+if [ ! -x "$EXIFTOOL_SCRIPT" ]; then
+    echo "Error: The existing script '$EXIFTOOL_SCRIPT' is missing or not executable."
     echo "Please check the path and permissions."
     exit 1
 fi
@@ -25,7 +25,7 @@ fi
 # --- Main Logic ---
 
 echo "Starting recursive media processing with timezone: $TIMEZONE_PARAM"
-echo "Target script: $EXISTING_SCRIPT"
+echo "Target script: $EXIFTOOL_SCRIPT"
 echo "Searching recursively starting from: $ROOT_DIR"
 echo "---"
 
@@ -33,7 +33,7 @@ echo "---"
 echo "-> Processing current directory: $ROOT_DIR"
 (
     # We are already in $ROOT_DIR, so just execute the script
-    "$EXISTING_SCRIPT" "$TIMEZONE_PARAM"
+    "$EXIFTOOL_SCRIPT" "$TIMEZONE_PARAM"
 
     if [ $? -ne 0 ]; then
         echo "Warning: Script failed in $ROOT_DIR. (Exit code: $?)"
@@ -69,7 +69,7 @@ for DIR in "${DIRS[@]}"; do
         fi
 
         # Execute the existing script
-        "$EXISTING_SCRIPT" "$TIMEZONE_PARAM"
+        "$EXIFTOOL_SCRIPT" "$TIMEZONE_PARAM"
 
         if [ $? -ne 0 ]; then
             echo "Warning: Script failed in $DIR. (Exit code: $?)"
