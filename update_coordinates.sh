@@ -74,14 +74,21 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
 
     # --- B. Handle DateTimeOriginal ---
     if [ -n "$RAW_DATE_TIME" ]; then
-        # ExifTool can handle the format '2025-09-20T08:45:04.620+03:00' but the EXIF standard doesn't support 
-        # the milliseconds (.620) or timezone (+03:00) in DateTimeOriginal.
-        # ExifTool automatically cleans this up. We will use the raw string.
+        # XMP format is typically '2025-09-20T08:45:04.620+03:00'
+        # Extract milliseconds if present (the digits after the decimal point, before timezone)
+        SUBSEC=$(echo "$RAW_DATE_TIME" | grep -oP '\.\K\d{1,3}' | head -1)
 
         # We also write to CreateDate and ModifyDate for completeness and consistency.
         echo "  -> XMP Date: $RAW_DATE_TIME"
 
         exiftool_options="$exiftool_options -DateTimeOriginal=\"$RAW_DATE_TIME\" -CreateDate=\"$RAW_DATE_TIME\" -ModifyDate=\"$RAW_DATE_TIME\""
+
+        # Write subseconds to the appropriate tags if present
+        if [ -n "$SUBSEC" ]; then
+            echo "  -> XMP SubSec: $SUBSEC"
+            exiftool_options="$exiftool_options -SubSecTimeOriginal=\"$SUBSEC\" -SubSecTimeDigitized=\"$SUBSEC\" -SubSecTime=\"$SUBSEC\""
+        fi
+
         DATE_UPDATED=true
     else
         echo "  -> INFO: DateTimeOriginal not found in $xmp_name."

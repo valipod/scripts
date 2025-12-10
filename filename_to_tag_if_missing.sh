@@ -38,14 +38,16 @@ fi
 # 5. Define Command Fragments
 # Double quotes are escaped (\") for execution inside sh -c
 # The result is YYYY:MM:DD HH:MM:SS[TIMEZONE_OFFSET]
+# Supports filenames with optional milliseconds: YYYY-MM-DD HH-mm-ss[-SSS].ext
 
 # Set DateTimeOriginal for images (JPEG format), if missing
 # Use single quotes around the ExifTool substitution block to protect it from the outer shell
-JPEG_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-DateTimeOriginal<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-CreateDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' -if 'not \$datetimeoriginal' "
+# Pattern matches: YYYY-MM-DD[ _]HH-mm-ss[-SSS] where SSS is optional milliseconds
+JPEG_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-DateTimeOriginal<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-CreateDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-SubSecTimeOriginal<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})-?(\d{3})?.*/\$7/}' '-SubSecTimeDigitized<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})-?(\d{3})?.*/\$7/}' -if 'not \$datetimeoriginal' "
 
 # Set CreateDate for videos, if missing
 # Use single quotes around the ExifTool substitution block to protect it from the outer shell
-VIDEO_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-CreateDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' -if 'not \$createdate' "
+VIDEO_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-CreateDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-SubSecTimeDigitized<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})-?(\d{3})?.*/\$7/}' -if 'not \$createdate' "
 
 # 6. Build the combined execution script ('all' media processing)
 CONTAINER_SCRIPT=$(cat <<EOF
