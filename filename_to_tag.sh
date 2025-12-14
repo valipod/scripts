@@ -1,23 +1,37 @@
 #!/bin/bash
 
-# This script now requires a single parameter: the timezone offset (e.g., +3, -5, +02:00).
-# Example execution: exiftool.sh +03:00
+# This script extracts date/time from filenames and writes to EXIF tags.
+# By default, only writes tags if missing. Use -f to force overwrite.
+#
+# Usage: filename_to_tag.sh [-f] <timezone_offset>
+# Examples:
+#   filename_to_tag.sh +03:00        # Only write if tag is missing
+#   filename_to_tag.sh -f +03:00     # Force overwrite existing tags
 
 # --- Define Constants ---
-CONTAINER_NAME="exiftool" 
+CONTAINER_NAME="exiftool"
 CONTAINER_BASE_DIR="/volume1"
 
 # 1. Capture host environment details (Reduced set)
 CONTAINER_WORK_DIR=$(pwd)
 
-# 2. Get the timezone offset parameter
+# 2. Parse parameters
+FORCE_OVERWRITE=false
+
+if [ "$1" = "-f" ]; then
+    FORCE_OVERWRITE=true
+    shift
+fi
+
 TIMEZONE_OFFSET=$1
 
 # 3. Validation
 # Check if a parameter was provided
 if [ -z "$TIMEZONE_OFFSET" ]; then
     echo "Error: Missing timezone offset parameter." >&2
-    echo "Usage: exiftool.sh [+HH] or exiftool.sh [+HH:MM]" >&2
+    echo "Usage: filename_to_tag.sh [-f] <timezone_offset>" >&2
+    echo "  -f: Force overwrite existing tags (default: only write if missing)" >&2
+    echo "  timezone_offset: e.g., +3, -05, +02:00, -5:30" >&2
     exit 1
 fi
 
@@ -35,19 +49,36 @@ if [[ "$CONTAINER_WORK_DIR" != /volume1* ]]; then
     exit 1
 fi
 
+# 4b. Check if .time marker file exists (skip if already processed)
+if [ -f ".time" ]; then
+    echo "Skipping: .time file exists in $CONTAINER_WORK_DIR (already processed)"
+    exit 0
+fi
+
 # 5. Define Command Fragments
 # Double quotes are escaped (\") for execution inside sh -c
 # The result is YYYY:MM:DD HH:MM:SS[TIMEZONE_OFFSET]
 # Supports filenames with optional milliseconds: YYYY-MM-DD HH-mm-ss[-SSS].ext
 
-# Set DateTimeOriginal for images (JPEG format), if missing
+# Build the -if condition based on FORCE_OVERWRITE flag
+if [ "$FORCE_OVERWRITE" = true ]; then
+    JPEG_IF_CONDITION=""
+    VIDEO_IF_CONDITION=""
+    echo "Mode: Force overwrite (will overwrite existing tags)"
+else
+    JPEG_IF_CONDITION="-if 'not \$datetimeoriginal' "
+    VIDEO_IF_CONDITION="-if 'not \$createdate' "
+    echo "Mode: Only write if missing"
+fi
+
+# Set DateTimeOriginal for images (JPEG format)
 # Use single quotes around the ExifTool substitution block to protect it from the outer shell
 # Pattern matches: YYYY-MM-DD[ _]HH-mm-ss[-SSS] where SSS is optional milliseconds
-JPEG_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-DateTimeOriginal<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-CreateDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-SubSecTimeOriginal<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})-?(\d{3})?.*/\$7/}' '-SubSecTimeDigitized<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})-?(\d{3})?.*/\$7/}' "
+JPEG_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-DateTimeOriginal<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-CreateDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-SubSecTimeOriginal<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})-?(\d{3})?.*/\$7/}' '-SubSecTimeDigitized<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})-?(\d{3})?.*/\$7/}' ${JPEG_IF_CONDITION}"
 
-# Set CreateDate for videos, if missing
+# Set CreateDate for videos
 # Use single quotes around the ExifTool substitution block to protect it from the outer shell
-VIDEO_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-CreateDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-SubSecTimeDigitized<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})-?(\d{3})?.*/\$7/}' "
+VIDEO_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-CreateDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2}).*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-SubSecTimeDigitized<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})-?(\d{3})?.*/\$7/}' ${VIDEO_IF_CONDITION}"
 
 # 6. Build the combined execution script ('all' media processing)
 CONTAINER_SCRIPT=$(cat <<EOF
@@ -82,4 +113,8 @@ FINAL_CMD="$CONTAINER_SCRIPT"
 
 # Revert to sh -c
 docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" sh -c "$FINAL_CMD"
+
+# 9. Create .time marker file to indicate processing is complete
+touch .time
+echo "Created .time marker file in $CONTAINER_WORK_DIR"
 
