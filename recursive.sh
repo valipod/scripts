@@ -5,8 +5,8 @@
 # Usage: recursive_exiftool.sh <script_name> [script_parameters...]
 #
 # Examples:
-#   recursive_exiftool.sh filename_to_tag.sh 3          # Write tags if missing, timezone +03:00
-#   recursive_exiftool.sh filename_to_tag.sh -f 3       # Force overwrite, timezone +03:00
+#   recursive_exiftool.sh filename2tag.sh 3          # Write tags if missing, timezone +03:00
+#   recursive_exiftool.sh filename2tag.sh -f 3       # Force overwrite, timezone +03:00
 #   recursive_exiftool.sh xmp2exif.sh                   # Sync XMP data to EXIF
 
 # Set the root directory for searching
