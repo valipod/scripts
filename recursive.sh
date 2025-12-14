@@ -1,39 +1,53 @@
 #!/bin/bash
 
-# --- Configuration ---
-EXIFTOOL_SCRIPT="/var/services/homes/dumitval/bin/exiftool.sh"
+# Recursively execute a script in all subdirectories.
+#
+# Usage: recursive_exiftool.sh <script_name> [script_parameters...]
+#
+# Examples:
+#   recursive_exiftool.sh filename_to_tag.sh 3          # Write tags if missing, timezone +03:00
+#   recursive_exiftool.sh filename_to_tag.sh -f 3       # Force overwrite, timezone +03:00
+#   recursive_exiftool.sh xmp2exif.sh                   # Sync XMP data to EXIF
 
 # Set the root directory for searching
 ROOT_DIR="$(pwd)"
 
 # --- Parameter Check and Error Handling ---
-TIMEZONE_PARAM="$1"
+SCRIPT_NAME="$1"
 
-if [ -z "$TIMEZONE_PARAM" ]; then
-    echo "Usage: $0 <timezone>"
-    echo "Example: $0 +03:00"
+if [ -z "$SCRIPT_NAME" ]; then
+    echo "Usage: $0 <script_name> [script_parameters...]" >&2
+    echo "" >&2
+    echo "Examples:" >&2
+    echo "  $0 filename_to_tag.sh 3        # Write tags if missing, timezone +03:00" >&2
+    echo "  $0 filename_to_tag.sh -f 3     # Force overwrite, timezone +03:00" >&2
+    echo "  $0 xmp2exif.sh                 # Sync XMP data to EXIF" >&2
     exit 1
 fi
 
-# Check if the existing script is present and executable
-if [ ! -x "$EXIFTOOL_SCRIPT" ]; then
-    echo "Error: The existing script '$EXIFTOOL_SCRIPT' is missing or not executable."
-    echo "Please check the path and permissions."
+# Shift to get remaining parameters for the target script
+shift
+SCRIPT_PARAMS=("$@")
+
+# Check if the script exists in PATH
+if ! command -v "$SCRIPT_NAME" &> /dev/null; then
+    echo "Error: Script '$SCRIPT_NAME' not found in PATH." >&2
     exit 1
 fi
 
 # --- Main Logic ---
 
-echo "Starting recursive media processing with timezone: $TIMEZONE_PARAM"
-echo "Target script: $EXIFTOOL_SCRIPT"
-echo "Searching recursively starting from: $ROOT_DIR"
+echo "Starting recursive processing..."
+echo "Script: $SCRIPT_NAME"
+echo "Parameters: ${SCRIPT_PARAMS[*]}"
+echo "Starting from: $ROOT_DIR"
 echo "---"
 
 # 1. PROCESS THE CURRENT DIRECTORY ($ROOT_DIR)
 echo "-> Processing current directory: $ROOT_DIR"
 (
     # We are already in $ROOT_DIR, so just execute the script
-    "$EXIFTOOL_SCRIPT" "$TIMEZONE_PARAM"
+    "$SCRIPT_NAME" "${SCRIPT_PARAMS[@]}"
 
     if [ $? -ne 0 ]; then
         echo "Warning: Script failed in $ROOT_DIR. (Exit code: $?)"
@@ -68,8 +82,8 @@ for DIR in "${DIRS[@]}"; do
             exit 1 # Exit the subshell, but the main 'for' loop continues
         fi
 
-        # Execute the existing script
-        "$EXIFTOOL_SCRIPT" "$TIMEZONE_PARAM"
+        # Execute the script
+        "$SCRIPT_NAME" "${SCRIPT_PARAMS[@]}"
 
         if [ $? -ne 0 ]; then
             echo "Warning: Script failed in $DIR. (Exit code: $?)"
