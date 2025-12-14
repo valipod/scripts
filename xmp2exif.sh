@@ -21,23 +21,9 @@ if [[ "$CONTAINER_WORK_DIR" != /volume1* ]]; then
     exit 1
 fi
 
-# Check marker files to determine what processing is needed
-SKIP_LOCATION=false
-SKIP_TIME=false
-
+# Check if .location marker file exists (skip if already processed)
 if [ -f ".location" ]; then
-    echo "INFO: .location file exists - skipping GPS coordinate updates"
-    SKIP_LOCATION=true
-fi
-
-if [ -f ".time" ]; then
-    echo "INFO: .time file exists - skipping DateTime updates"
-    SKIP_TIME=true
-fi
-
-# If both marker files exist, nothing to do
-if [ "$SKIP_LOCATION" = true ] && [ "$SKIP_TIME" = true ]; then
-    echo "Both .location and .time files exist - nothing to process"
+    echo "Skipping: .location file exists in $CONTAINER_WORK_DIR (already processed)"
     exit 0
 fi
 
@@ -79,9 +65,7 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
     exiftool_options="-q -m -P -overwrite_original"
 
     # --- A. Handle GPS Coordinates ---
-    if [ "$SKIP_LOCATION" = true ]; then
-        GPS_UPDATED=false
-    elif [ -n "$RAW_LAT" ] && [ -n "$RAW_LON" ]; then
+    if [ -n "$RAW_LAT" ] && [ -n "$RAW_LON" ]; then
         LATITUDE_FORMATTED=$(clean_coord "$RAW_LAT")
         LONGITUDE_FORMATTED=$(clean_coord "$RAW_LON")
 
@@ -95,9 +79,7 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
     fi
 
     # --- B. Handle DateTimeOriginal ---
-    if [ "$SKIP_TIME" = true ]; then
-        DATE_UPDATED=false
-    elif [ -n "$RAW_DATE_TIME" ]; then
+    if [ -n "$RAW_DATE_TIME" ]; then
         # XMP format is typically '2025-09-20T08:45:04.620+03:00'
         # Extract milliseconds if present (the digits after the decimal point, before timezone)
         SUBSEC=$(echo "$RAW_DATE_TIME" | grep -oP '\.\K\d{1,3}' | head -1)
@@ -141,16 +123,9 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
 
 done
 
-# Create marker files for completed processing
-if [ "$SKIP_LOCATION" = false ]; then
-    touch .location
-    echo "Created .location marker file"
-fi
-
-if [ "$SKIP_TIME" = false ]; then
-    touch .time
-    echo "Created .time marker file"
-fi
+# Create .location marker file to indicate processing is complete
+touch .location
+echo "Created .location marker file in $CONTAINER_WORK_DIR"
 
 echo "--------------------------------------------------------"
 echo "Script finished."
