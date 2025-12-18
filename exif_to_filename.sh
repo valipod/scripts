@@ -87,12 +87,9 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
 
     echo "Processing: $filename"
 
-    # Get DateTimeOriginal and SubSecTimeOriginal from EXIF using docker
-    exif_data=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s -s -DateTimeOriginal -SubSecTimeOriginal "$file" 2>/dev/null)
-
-    # Parse the output - first line is DateTimeOriginal, second is SubSecTimeOriginal
-    datetime=$(echo "$exif_data" | head -1)
-    subsec=$(echo "$exif_data" | tail -1)
+    # Get DateTimeOriginal and SubSecTimeOriginal from EXIF using docker (separate calls to avoid parsing issues)
+    datetime=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s -s -DateTimeOriginal "$file" 2>/dev/null)
+    subsec=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s -s -SubSecTimeOriginal "$file" 2>/dev/null)
 
     # If no DateTimeOriginal, try CreateDate (for videos)
     if [ -z "$datetime" ]; then
