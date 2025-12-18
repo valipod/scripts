@@ -111,8 +111,8 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
         continue
     fi
 
-    # Pad subsec to 3 digits
-    subsec=$(printf "%03d" "$subsec")
+    # Pad subsec to 3 digits (use 10# to force decimal interpretation, avoiding octal issues)
+    subsec=$(printf "%03d" "$((10#$subsec))")
 
     # Parse datetime: "2024:01:15 10:30:45" -> "2024-01-15 10-30-45"
     # Format: YYYY:MM:DD HH:MM:SS
@@ -142,6 +142,18 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
 
         if [ $? -eq 0 ]; then
             echo "  -> Renamed $filename -> $new_filename"
+
+            # Check for XMP sidecar file and rename it too
+            xmp_file="${file}.xmp"
+            if [ -f "$xmp_file" ]; then
+                new_xmp_file="${new_filename}.xmp"
+                mv "$xmp_file" "$new_xmp_file"
+                if [ $? -eq 0 ]; then
+                    echo "  -> Renamed XMP sidecar: ${filename}.xmp -> ${new_filename}.xmp"
+                else
+                    echo "  -> ⚠️ WARNING: Failed to rename XMP sidecar"
+                fi
+            fi
 
             # Update EXIF with timezone information
             # Build the full datetime with timezone: YYYY:MM:DD HH:MM:SS+HH:MM
