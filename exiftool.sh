@@ -26,4 +26,4 @@ if [ $# -eq 0 ]; then
 fi
 
 # Execute exiftool in the container with all passed arguments
-docker exec -w "$CONTAINER_WORK_DIR" "$CONTAINER_NAME" exiftool "exiftool $@"
+docker exec -w "$CONTAINER_WORK_DIR" "$CONTAINER_NAME" exiftool "$@"
