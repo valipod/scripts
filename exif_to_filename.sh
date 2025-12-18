@@ -160,6 +160,9 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
                 -DateTimeOriginal="$new_datetime" \
                 -CreateDate="$new_datetime" \
                 -ModifyDate="$new_datetime" \
+                -OffsetTime="$TIMEZONE_OFFSET" \
+                -OffsetTimeOriginal="$TIMEZONE_OFFSET" \
+                -OffsetTimeDigitized="$TIMEZONE_OFFSET" \
                 "$new_filename"
 
             if [ $? -eq 0 ]; then
