@@ -106,7 +106,32 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
 
     # Check if subsec exists and is non-zero
     if [ -z "$subsec" ] || [ "$subsec" = "0" ] || [ "$subsec" = "00" ] || [ "$subsec" = "000" ]; then
-        echo "  -> INFO: No non-zero milliseconds found. Skipping."
+        echo "  -> INFO: No non-zero milliseconds found. Applying timezone only."
+        # Parse datetime: "2024:01:15 10:30:45" -> "2024-01-15 10-30-45"
+        if [[ "$datetime" =~ ^([0-9]{4}):([0-9]{2}):([0-9]{2})\ ([0-9]{2}):([0-9]{2}):([0-9]{2}) ]]; then
+            year="${BASH_REMATCH[1]}"
+            month="${BASH_REMATCH[2]}"
+            day="${BASH_REMATCH[3]}"
+            hour="${BASH_REMATCH[4]}"
+            minute="${BASH_REMATCH[5]}"
+            second="${BASH_REMATCH[6]}"
+            new_datetime="${year}:${month}:${day} ${hour}:${minute}:${second}${TIMEZONE_OFFSET}"
+            docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -q -m -P -overwrite_original \
+                -DateTimeOriginal="$new_datetime" \
+                -CreateDate="$new_datetime" \
+                -ModifyDate="$new_datetime" \
+                -OffsetTime="$TIMEZONE_OFFSET" \
+                -OffsetTimeOriginal="$TIMEZONE_OFFSET" \
+                -OffsetTimeDigitized="$TIMEZONE_OFFSET" \
+                "$filename"
+            if [ $? -eq 0 ]; then
+                echo "  -> ✅ SUCCESS: Updated EXIF with timezone $TIMEZONE_OFFSET (no subsecond)"
+            else
+                echo "  -> ⚠️ WARNING: Failed to update EXIF timezone (no subsecond)"
+            fi
+        else
+            echo "  -> WARNING: Could not parse datetime format: $datetime"
+        fi
         continue
     fi
 
