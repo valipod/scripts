@@ -90,11 +90,13 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
     # Get DateTimeOriginal and SubSecTimeOriginal from EXIF using docker (separate calls to avoid parsing issues)
     datetime=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s -s -DateTimeOriginal "$file" 2>/dev/null)
     subsec=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s -s -SubSecTimeOriginal "$file" 2>/dev/null)
+    orig_subsec="$subsec"
 
     # If no DateTimeOriginal, try CreateDate (for videos)
     if [ -z "$datetime" ]; then
         datetime=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s -s -CreateDate "$file" 2>/dev/null)
         subsec=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s -s -SubSecTimeDigitized "$file" 2>/dev/null)
+        orig_subsec="$subsec"
     fi
 
     if [ -z "$datetime" ]; then
@@ -108,8 +110,18 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
         continue
     fi
 
-    # Pad subsec to 3 digits (use 10# to force decimal interpretation, avoiding octal issues)
-    subsec=$(printf "%03d" "$((10#$subsec))")
+    # Prepare 3-digit milliseconds for filename
+    subsec_filename=$(printf "%03d" "${subsec:0:3}")
+
+    # Prepare 6-digit microseconds for EXIF update
+    if [[ ${#orig_subsec} -eq 6 && "${orig_subsec:0:3}" == "000" ]]; then
+        # If original is 000xyz, correct to xyz000
+        subsec_exif="${orig_subsec:3:3}000"
+    else
+        # Otherwise, pad/truncate to 6 digits
+        subsec_exif=$(printf "%-6s" "$orig_subsec" | tr ' ' '0')
+        subsec_exif="${subsec_exif:0:6}"
+    fi
 
     # Parse datetime: "2024:01:15 10:30:45" -> "2024-01-15 10-30-45"
     # Format: YYYY:MM:DD HH:MM:SS
@@ -121,7 +133,7 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
         minute="${BASH_REMATCH[5]}"
         second="${BASH_REMATCH[6]}"
 
-        new_filename="${year}-${month}-${day} ${hour}-${minute}-${second}-${subsec}.${extension,,}"
+        new_filename="${year}-${month}-${day} ${hour}-${minute}-${second}-${subsec_filename}.${extension,,}"
 
         if [ "$filename" = "$new_filename" ]; then
             echo "  -> INFO: Already named correctly. Skipping."
@@ -152,7 +164,7 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
                 fi
             fi
 
-            # Update EXIF with timezone information
+            # Update EXIF with timezone information and corrected subsecond value
             # Build the full datetime with timezone: YYYY:MM:DD HH:MM:SS+HH:MM
             new_datetime="${year}:${month}:${day} ${hour}:${minute}:${second}${TIMEZONE_OFFSET}"
 
@@ -160,15 +172,18 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
                 -DateTimeOriginal="$new_datetime" \
                 -CreateDate="$new_datetime" \
                 -ModifyDate="$new_datetime" \
+                -SubSecTimeOriginal="$subsec_exif" \
+                -SubSecTimeDigitized="$subsec_exif" \
+                -SubSecTime="$subsec_exif" \
                 -OffsetTime="$TIMEZONE_OFFSET" \
                 -OffsetTimeOriginal="$TIMEZONE_OFFSET" \
                 -OffsetTimeDigitized="$TIMEZONE_OFFSET" \
                 "$new_filename"
 
             if [ $? -eq 0 ]; then
-                echo "  -> ✅ SUCCESS: Updated EXIF with timezone $TIMEZONE_OFFSET"
+                echo "  -> ✅ SUCCESS: Updated EXIF with timezone $TIMEZONE_OFFSET and subsecond $subsec_exif"
             else
-                echo "  -> ⚠️ WARNING: Renamed but failed to update EXIF timezone"
+                echo "  -> ⚠️ WARNING: Renamed but failed to update EXIF timezone/subsecond"
             fi
         else
             echo "  -> ❌ ERROR: Failed to rename $filename"
