@@ -135,58 +135,65 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
 
         new_filename="${year}-${month}-${day} ${hour}-${minute}-${second}-${subsec_filename}.${extension,,}"
 
-        if [ "$filename" = "$new_filename" ]; then
-            echo "  -> INFO: Already named correctly. Skipping."
-            continue
-        fi
+        target_file="$filename"
+        renamed=0
 
-        # Check if target filename already exists
-        if [ -f "$new_filename" ]; then
-            echo "  -> WARNING: Target file $new_filename already exists. Skipping."
-            continue
-        fi
-
-        echo "  -> Renaming to: $new_filename"
-        mv "$file" "$new_filename"
-
-        if [ $? -eq 0 ]; then
-            echo "  -> Renamed $filename -> $new_filename"
-
-            # Check for XMP sidecar file and rename it too
-            xmp_file="${file}.xmp"
-            if [ -f "$xmp_file" ]; then
-                new_xmp_file="${new_filename}.xmp"
-                mv "$xmp_file" "$new_xmp_file"
-                if [ $? -eq 0 ]; then
-                    echo "  -> Renamed XMP sidecar: ${filename}.xmp -> ${new_filename}.xmp"
-                else
-                    echo "  -> ⚠️ WARNING: Failed to rename XMP sidecar"
-                fi
+        if [ "$filename" != "$new_filename" ]; then
+            # Check if target filename already exists
+            if [ -f "$new_filename" ]; then
+                echo "  -> WARNING: Target file $new_filename already exists. Skipping."
+                continue
             fi
 
-            # Update EXIF with timezone information and corrected subsecond value
-            # Build the full datetime with timezone: YYYY:MM:DD HH:MM:SS+HH:MM
-            new_datetime="${year}:${month}:${day} ${hour}:${minute}:${second}${TIMEZONE_OFFSET}"
-
-            docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -q -m -P -overwrite_original \
-                -DateTimeOriginal="$new_datetime" \
-                -CreateDate="$new_datetime" \
-                -ModifyDate="$new_datetime" \
-                -SubSecTimeOriginal="$subsec_exif" \
-                -SubSecTimeDigitized="$subsec_exif" \
-                -SubSecTime="$subsec_exif" \
-                -OffsetTime="$TIMEZONE_OFFSET" \
-                -OffsetTimeOriginal="$TIMEZONE_OFFSET" \
-                -OffsetTimeDigitized="$TIMEZONE_OFFSET" \
-                "$new_filename"
-
+            echo "  -> Renaming to: $new_filename"
+            mv "$file" "$new_filename"
             if [ $? -eq 0 ]; then
-                echo "  -> ✅ SUCCESS: Updated EXIF with timezone $TIMEZONE_OFFSET and subsecond $subsec_exif"
+                echo "  -> Renamed $filename -> $new_filename"
+                # Check for XMP sidecar file and rename it too
+                xmp_file="${file}.xmp"
+                if [ -f "$xmp_file" ]; then
+                    new_xmp_file="${new_filename}.xmp"
+                    mv "$xmp_file" "$new_xmp_file"
+                    if [ $? -eq 0 ]; then
+                        echo "  -> Renamed XMP sidecar: ${filename}.xmp -> ${new_filename}.xmp"
+                    else
+                        echo "  -> ⚠️ WARNING: Failed to rename XMP sidecar"
+                    fi
+                fi
+                target_file="$new_filename"
+                renamed=1
             else
-                echo "  -> ⚠️ WARNING: Renamed but failed to update EXIF timezone/subsecond"
+                echo "  -> ❌ ERROR: Failed to rename $filename"
+                continue
             fi
         else
-            echo "  -> ❌ ERROR: Failed to rename $filename"
+            echo "  -> INFO: Already named correctly. Updating EXIF."
+        fi
+
+        # Update EXIF with timezone information and corrected subsecond value
+        # Build the full datetime with timezone: YYYY:MM:DD HH:MM:SS+HH:MM
+        new_datetime="${year}:${month}:${day} ${hour}:${minute}:${second}${TIMEZONE_OFFSET}"
+
+        docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -q -m -P -overwrite_original \
+            -DateTimeOriginal="$new_datetime" \
+            -CreateDate="$new_datetime" \
+            -ModifyDate="$new_datetime" \
+            -SubSecTimeOriginal="$subsec_exif" \
+            -SubSecTimeDigitized="$subsec_exif" \
+            -SubSecTime="$subsec_exif" \
+            -OffsetTime="$TIMEZONE_OFFSET" \
+            -OffsetTimeOriginal="$TIMEZONE_OFFSET" \
+            -OffsetTimeDigitized="$TIMEZONE_OFFSET" \
+            "$target_file"
+
+        if [ $? -eq 0 ]; then
+            echo "  -> ✅ SUCCESS: Updated EXIF with timezone $TIMEZONE_OFFSET and subsecond $subsec_exif"
+        else
+            if [ $renamed -eq 1 ]; then
+                echo "  -> ⚠️ WARNING: Renamed but failed to update EXIF timezone/subsecond"
+            else
+                echo "  -> ⚠️ WARNING: Failed to update EXIF timezone/subsecond"
+            fi
         fi
     else
         echo "  -> WARNING: Could not parse datetime format: $datetime"
@@ -198,6 +205,6 @@ shopt -u nullglob nocaseglob
 # Create .filename marker file to indicate processing is complete
 touch .filename
 echo "Created .filename marker file in $CONTAINER_WORK_DIR"
-
+the
 echo "--------------------------------------------------------"
 echo "Script finished."
