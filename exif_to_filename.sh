@@ -230,6 +230,5 @@ shopt -u nullglob nocaseglob
 # Create .filename marker file to indicate processing is complete
 touch .filename
 echo "Created .filename marker file in $CONTAINER_WORK_DIR"
-the
 echo "--------------------------------------------------------"
 echo "Script finished."
