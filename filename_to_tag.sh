@@ -36,33 +36,35 @@ if [ -z "$TIMEZONE_OFFSET" ]; then
 fi
 
 # Normalize timezone offset to +HH:MM or -HH:MM format
-# Handle simple integers (e.g., 3 -> +03:00, -5 -> -05:00)
-if [[ "$TIMEZONE_OFFSET" =~ ^-?[0-9]{1,2}$ ]]; then
-    if [[ "$TIMEZONE_OFFSET" =~ ^- ]]; then
-        # Negative number
+
+# Normalize timezone offset to +HH:MM or -HH:MM format
+case "$TIMEZONE_OFFSET" in
+    # Integer (e.g., 3, -5)
+    -[0-9]|-[0-9][0-9])
         num="${TIMEZONE_OFFSET#-}"
         TIMEZONE_OFFSET=$(printf "-%02d:00" "$num")
-    else
-        # Positive number (no sign or implicit +)
+        ;;
+    [0-9]|[0-9][0-9])
         TIMEZONE_OFFSET=$(printf "+%02d:00" "$TIMEZONE_OFFSET")
-    fi
-# Handle +N or -N format without minutes (e.g., +3 -> +03:00)
-elif [[ "$TIMEZONE_OFFSET" =~ ^[+-][0-9]{1,2}$ ]]; then
-    sign="${TIMEZONE_OFFSET:0:1}"
-    num="${TIMEZONE_OFFSET:1}"
-    TIMEZONE_OFFSET=$(printf "%s%02d:00" "$sign" "$num")
-# Handle +HH:MM or -HH:MM format - normalize hours to 2 digits
-elif [[ "$TIMEZONE_OFFSET" =~ ^[+-][0-9]{1,2}:[0-9]{2}$ ]]; then
-    sign="${TIMEZONE_OFFSET:0:1}"
-    rest="${TIMEZONE_OFFSET:1}"
-    hours="${rest%%:*}"
-    mins="${rest##*:}"
-    TIMEZONE_OFFSET=$(printf "%s%02d:%s" "$sign" "$hours" "$mins")
-else
-    echo "Error: Invalid timezone offset format: $TIMEZONE_OFFSET" >&2
-    echo "Please use format like 3, -5, +02:00, or -5:30." >&2
-    exit 1
-fi
+        ;;
+    +[0-9]|+[0-9][0-9])
+        num="${TIMEZONE_OFFSET#+}"
+        TIMEZONE_OFFSET=$(printf "+%02d:00" "$num")
+        ;;
+    # +HH:MM or -HH:MM
+    +[0-9]:[0-9][0-9]|+[0-9][0-9]:[0-9][0-9]|-[0-9]:[0-9][0-9]|-[0-9][0-9]:[0-9][0-9])
+        sign="${TIMEZONE_OFFSET:0:1}"
+        rest="${TIMEZONE_OFFSET:1}"
+        hours="${rest%%:*}"
+        mins="${rest##*:}"
+        TIMEZONE_OFFSET=$(printf "%s%02d:%s" "$sign" "$hours" "$mins")
+        ;;
+    *)
+        echo "Error: Invalid timezone offset format: $TIMEZONE_OFFSET" >&2
+        echo "Please use format like 3, -5, +02:00, or -5:30." >&2
+        exit 1
+        ;;
+esac
 
 echo "Timezone offset: $TIMEZONE_OFFSET"
 
