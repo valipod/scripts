@@ -136,7 +136,7 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
     fi
 
     # Prepare 3-digit milliseconds for filename
-    subsec_filename=$(printf "%03d" "${subsec:0:3}")
+    subsec_filename=$(printf "%-3s" "${subsec:0:3}" | tr ' ' '0')
 
     # Prepare 6-digit microseconds for EXIF update
     if [[ ${#orig_subsec} -eq 6 && "${orig_subsec:0:3}" == "000" ]]; then
