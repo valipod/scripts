@@ -105,47 +105,25 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
     fi
 
     # Check if subsec exists and is non-zero
+    has_subsec=true
     if [ -z "$subsec" ] || [ "$subsec" = "0" ] || [ "$subsec" = "00" ] || [ "$subsec" = "000" ]; then
-        echo "  -> INFO: No non-zero milliseconds found. Applying timezone only."
-        # Parse datetime: "2024:01:15 10:30:45" -> "2024-01-15 10-30-45"
-        if [[ "$datetime" =~ ^([0-9]{4}):([0-9]{2}):([0-9]{2})\ ([0-9]{2}):([0-9]{2}):([0-9]{2}) ]]; then
-            year="${BASH_REMATCH[1]}"
-            month="${BASH_REMATCH[2]}"
-            day="${BASH_REMATCH[3]}"
-            hour="${BASH_REMATCH[4]}"
-            minute="${BASH_REMATCH[5]}"
-            second="${BASH_REMATCH[6]}"
-            new_datetime="${year}:${month}:${day} ${hour}:${minute}:${second}${TIMEZONE_OFFSET}"
-            docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -q -m -P -overwrite_original \
-                -DateTimeOriginal="$new_datetime" \
-                -CreateDate="$new_datetime" \
-                -ModifyDate="$new_datetime" \
-                -OffsetTime="$TIMEZONE_OFFSET" \
-                -OffsetTimeOriginal="$TIMEZONE_OFFSET" \
-                -OffsetTimeDigitized="$TIMEZONE_OFFSET" \
-                "$filename"
-            if [ $? -eq 0 ]; then
-                echo "  -> ✅ SUCCESS: Updated EXIF with timezone $TIMEZONE_OFFSET (no subsecond)"
-            else
-                echo "  -> ⚠️ WARNING: Failed to update EXIF timezone (no subsecond)"
-            fi
-        else
-            echo "  -> WARNING: Could not parse datetime format: $datetime"
-        fi
-        continue
+        has_subsec=false
     fi
 
-    # Prepare 3-digit milliseconds for filename
-    subsec_filename=$(printf "%-3s" "${subsec:0:3}" | tr ' ' '0')
+    # Prepare subsec values only if milliseconds exist
+    if [ "$has_subsec" = true ]; then
+        # Prepare 3-digit milliseconds for filename
+        subsec_filename=$(printf "%-3s" "${subsec:0:3}" | tr ' ' '0')
 
-    # Prepare 6-digit microseconds for EXIF update
-    if [[ ${#orig_subsec} -eq 6 && "${orig_subsec:0:3}" == "000" ]]; then
-        # If original is 000xyz, correct to xyz000
-        subsec_exif="${orig_subsec:3:3}000"
-    else
-        # Otherwise, pad/truncate to 6 digits
-        subsec_exif=$(printf "%-6s" "$orig_subsec" | tr ' ' '0')
-        subsec_exif="${subsec_exif:0:6}"
+        # Prepare 6-digit microseconds for EXIF update
+        if [[ ${#orig_subsec} -eq 6 && "${orig_subsec:0:3}" == "000" ]]; then
+            # If original is 000xyz, correct to xyz000
+            subsec_exif="${orig_subsec:3:3}000"
+        else
+            # Otherwise, pad/truncate to 6 digits
+            subsec_exif=$(printf "%-6s" "$orig_subsec" | tr ' ' '0')
+            subsec_exif="${subsec_exif:0:6}"
+        fi
     fi
 
     # Parse datetime: "2024:01:15 10:30:45" -> "2024-01-15 10-30-45"
@@ -158,7 +136,11 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
         minute="${BASH_REMATCH[5]}"
         second="${BASH_REMATCH[6]}"
 
-        new_filename="${year}-${month}-${day} ${hour}-${minute}-${second}-${subsec_filename}.${extension,,}"
+        if [ "$has_subsec" = true ]; then
+            new_filename="${year}-${month}-${day} ${hour}-${minute}-${second}-${subsec_filename}.${extension,,}"
+        else
+            new_filename="${year}-${month}-${day} ${hour}-${minute}-${second}.${extension,,}"
+        fi
 
         target_file="$filename"
         renamed=0
@@ -199,20 +181,35 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
         # Build the full datetime with timezone: YYYY:MM:DD HH:MM:SS+HH:MM
         new_datetime="${year}:${month}:${day} ${hour}:${minute}:${second}${TIMEZONE_OFFSET}"
 
-        docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -q -m -P -overwrite_original \
-            -DateTimeOriginal="$new_datetime" \
-            -CreateDate="$new_datetime" \
-            -ModifyDate="$new_datetime" \
-            -SubSecTimeOriginal="$subsec_exif" \
-            -SubSecTimeDigitized="$subsec_exif" \
-            -SubSecTime="$subsec_exif" \
-            -OffsetTime="$TIMEZONE_OFFSET" \
-            -OffsetTimeOriginal="$TIMEZONE_OFFSET" \
-            -OffsetTimeDigitized="$TIMEZONE_OFFSET" \
-            "$target_file"
+        if [ "$has_subsec" = true ]; then
+            docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -q -m -P -overwrite_original \
+                -DateTimeOriginal="$new_datetime" \
+                -CreateDate="$new_datetime" \
+                -ModifyDate="$new_datetime" \
+                -SubSecTimeOriginal="$subsec_exif" \
+                -SubSecTimeDigitized="$subsec_exif" \
+                -SubSecTime="$subsec_exif" \
+                -OffsetTime="$TIMEZONE_OFFSET" \
+                -OffsetTimeOriginal="$TIMEZONE_OFFSET" \
+                -OffsetTimeDigitized="$TIMEZONE_OFFSET" \
+                "$target_file"
+        else
+            docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -q -m -P -overwrite_original \
+                -DateTimeOriginal="$new_datetime" \
+                -CreateDate="$new_datetime" \
+                -ModifyDate="$new_datetime" \
+                -OffsetTime="$TIMEZONE_OFFSET" \
+                -OffsetTimeOriginal="$TIMEZONE_OFFSET" \
+                -OffsetTimeDigitized="$TIMEZONE_OFFSET" \
+                "$target_file"
+        fi
 
         if [ $? -eq 0 ]; then
-            echo "  -> ✅ SUCCESS: Updated EXIF with timezone $TIMEZONE_OFFSET and subsecond $subsec_exif"
+            if [ "$has_subsec" = true ]; then
+                echo "  -> ✅ SUCCESS: Updated EXIF with timezone $TIMEZONE_OFFSET and subsecond $subsec_exif"
+            else
+                echo "  -> ✅ SUCCESS: Updated EXIF with timezone $TIMEZONE_OFFSET (no subsecond)"
+            fi
         else
             if [ $renamed -eq 1 ]; then
                 echo "  -> ⚠️ WARNING: Renamed but failed to update EXIF timezone/subsecond"
