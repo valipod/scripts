@@ -119,7 +119,7 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
     fi
 
     # --- Parse the filename and compare with EXIF ---
-    if [[ "$filename" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})\ ([0-9]{2})-([0-9]{2})-([0-9]{2})(-([0-9]{3}))?\.([a-zA-Z0-9]+)$ ]]; then
+    if [[ "$filename" =~ ^([0-9]{4})-([0-9]{2})-([0-9]{2})\ ([0-9]{2})-([0-9]{2})-([0-9]{2})(-([0-9]{3}))?[^.]*\.([a-zA-Z0-9]+)$ ]]; then
         fn_year="${BASH_REMATCH[1]}"
         fn_month="${BASH_REMATCH[2]}"
         fn_day="${BASH_REMATCH[3]}"
