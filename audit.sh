@@ -110,12 +110,29 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
     fi
 
     # --- Check timezone offset ---
-    if [ -z "$exif_tz" ]; then
-        issues+=("MISSING TIMEZONE: OffsetTimeOriginal not set (expected $TIMEZONE_OFFSET)")
+    if [ -n "$exif_tz" ]; then
+        # OffsetTimeOriginal tag exists (JPEG) — compare directly
+        if [ "$exif_tz" != "$TIMEZONE_OFFSET" ]; then
+            issues+=("TIMEZONE MISMATCH: OffsetTimeOriginal='$exif_tz', expected '$TIMEZONE_OFFSET'")
+            ((tz_mismatch_count++))
+        fi
+    elif [ -n "$effective_datetime" ]; then
+        # No OffsetTimeOriginal (videos/PNG) — check timezone embedded in datetime string
+        embedded_tz=""
+        if [[ "$effective_datetime" =~ [+-][0-9]{2}:[0-9]{2}$ ]]; then
+            embedded_tz="${BASH_REMATCH[0]}"
+        fi
+
+        if [ -z "$embedded_tz" ]; then
+            issues+=("MISSING TIMEZONE: no OffsetTimeOriginal and no timezone in datetime string (expected $TIMEZONE_OFFSET)")
+            ((missing_tz_count++))
+        elif [ "$embedded_tz" != "$TIMEZONE_OFFSET" ]; then
+            issues+=("TIMEZONE MISMATCH: datetime contains '$embedded_tz', expected '$TIMEZONE_OFFSET'")
+            ((tz_mismatch_count++))
+        fi
+    else
+        issues+=("MISSING TIMEZONE: no OffsetTimeOriginal and no datetime found (expected $TIMEZONE_OFFSET)")
         ((missing_tz_count++))
-    elif [ "$exif_tz" != "$TIMEZONE_OFFSET" ]; then
-        issues+=("TIMEZONE MISMATCH: found '$exif_tz', expected '$TIMEZONE_OFFSET'")
-        ((tz_mismatch_count++))
     fi
 
     # --- Parse the filename and compare with EXIF ---
@@ -127,8 +144,16 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
         fn_min="${BASH_REMATCH[5]}"
         fn_sec="${BASH_REMATCH[6]}"
         fn_subsec="${BASH_REMATCH[8]}"
+        fn_ext="${BASH_REMATCH[9]}"
 
         fn_datetime="${fn_year}:${fn_month}:${fn_day} ${fn_hour}:${fn_min}:${fn_sec}"
+
+        # Determine if this is a video file (can't store SubSecTimeOriginal)
+        fn_ext_lower="${fn_ext,,}"
+        is_video=false
+        if [[ "$fn_ext_lower" == "mp4" || "$fn_ext_lower" == "mov" ]]; then
+            is_video=true
+        fi
 
         if [ -z "$effective_datetime" ]; then
             issues+=("NO EXIF DATE: no DateTimeOriginal or CreateDate found")
@@ -141,8 +166,8 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
             if [ "$fn_datetime" != "$exif_datetime_bare" ]; then
                 issues+=("DATETIME MISMATCH: filename='$fn_datetime', EXIF='$exif_datetime_bare'")
                 ((datetime_mismatch_count++))
-            elif [ -n "$fn_subsec" ]; then
-                # Date+time match — compare subseconds if filename has them
+            elif [ -n "$fn_subsec" ] && [ "$is_video" = false ]; then
+                # Date+time match — compare subseconds if filename has them (skip videos: no SubSec support)
                 normalized_exif_subsec=""
                 if [ -n "$effective_subsec" ]; then
                     normalized_exif_subsec=$(printf "%-3s" "${effective_subsec:0:3}" | tr ' ' '0')
