@@ -84,6 +84,9 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
         # Extract milliseconds if present (the digits after the decimal point, before timezone)
         SUBSEC=$(echo "$RAW_DATE_TIME" | grep -oP '\.\K\d{1,3}' | head -1)
 
+        # Extract timezone offset if present (e.g., +03:00, -05:30, Z)
+        TZ_OFFSET=$(echo "$RAW_DATE_TIME" | grep -oP '[+-]\d{2}:\d{2}$')
+
         # We also write to CreateDate and ModifyDate for completeness and consistency.
         echo "  -> XMP Date: $RAW_DATE_TIME"
 
@@ -93,6 +96,12 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
         if [ -n "$SUBSEC" ]; then
             echo "  -> XMP SubSec: $SUBSEC"
             exiftool_options="$exiftool_options -SubSecTimeOriginal=\"$SUBSEC\" -SubSecTimeDigitized=\"$SUBSEC\" -SubSecTime=\"$SUBSEC\""
+        fi
+
+        # Write timezone offset tags if present
+        if [ -n "$TZ_OFFSET" ]; then
+            echo "  -> XMP Timezone: $TZ_OFFSET"
+            exiftool_options="$exiftool_options -OffsetTime=\"$TZ_OFFSET\" -OffsetTimeOriginal=\"$TZ_OFFSET\" -OffsetTimeDigitized=\"$TZ_OFFSET\""
         fi
 
         DATE_UPDATED=true
