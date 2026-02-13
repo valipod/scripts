@@ -74,6 +74,7 @@ datetime_mismatch_count=0
 subsec_mismatch_count=0
 no_exif_date_count=0
 unparseable_name_count=0
+issue_files=()
 
 # 5. Process all media files
 shopt -s nullglob nocaseglob
@@ -166,6 +167,7 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
     # --- Report issues for this file ---
     if [ ${#issues[@]} -gt 0 ]; then
         ((files_with_issues++))
+        issue_files+=("$filename")
         echo "ISSUE: $filename"
         for issue in "${issues[@]}"; do
             echo "  -> $issue"
@@ -188,6 +190,16 @@ echo "  Datetime mismatches:    $datetime_mismatch_count"
 echo "  Subsecond mismatches:   $subsec_mismatch_count"
 echo "  No EXIF date:           $no_exif_date_count"
 echo "  Unparseable filenames:  $unparseable_name_count"
+echo "--------------------------------------------------------"
+
+if [ ${#issue_files[@]} -gt 0 ]; then
+    echo ""
+    echo "Files with issues:"
+    for f in "${issue_files[@]}"; do
+        echo "$f"
+    done
+fi
+
 echo "--------------------------------------------------------"
 echo "Audit finished."
 
