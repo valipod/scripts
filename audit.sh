@@ -133,9 +133,12 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
             issues+=("NO EXIF DATE: no DateTimeOriginal or CreateDate found")
             ((no_exif_date_count++))
         else
+            # Strip timezone suffix if present (e.g., "2025:12:23 11:43:58+08:00" -> "2025:12:23 11:43:58")
+            exif_datetime_bare="${effective_datetime%[+-]*}"
+
             # Compare date+time portion
-            if [ "$fn_datetime" != "$effective_datetime" ]; then
-                issues+=("DATETIME MISMATCH: filename='$fn_datetime', EXIF='$effective_datetime'")
+            if [ "$fn_datetime" != "$exif_datetime_bare" ]; then
+                issues+=("DATETIME MISMATCH: filename='$fn_datetime', EXIF='$exif_datetime_bare'")
                 ((datetime_mismatch_count++))
             elif [ -n "$fn_subsec" ]; then
                 # Date+time match — compare subseconds if filename has them
