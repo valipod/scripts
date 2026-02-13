@@ -61,6 +61,14 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
 
     # 3. Build the ExifTool Command Dynamically
 
+    # Determine if this is a video file (MP4/MOV can't store EXIF GPS IFD — use XMP instead)
+    image_ext="${image_name##*.}"
+    image_ext_lower="${image_ext,,}"
+    is_video=false
+    if [[ "$image_ext_lower" == "mp4" || "$image_ext_lower" == "mov" ]]; then
+        is_video=true
+    fi
+
     # Base command starts with quality/safety options
     exiftool_options="-q -m -P -overwrite_original"
 
@@ -71,7 +79,13 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
 
         echo "  -> XMP Coords: Lat $LATITUDE_FORMATTED, Lon $LONGITUDE_FORMATTED"
 
-        exiftool_options="$exiftool_options -GPSLatitude=\"$LATITUDE_FORMATTED\" -GPSLongitude=\"$LONGITUDE_FORMATTED\""
+        if [ "$is_video" = true ]; then
+            # Video files: write to XMP group (MP4/MOV don't have EXIF GPS IFD)
+            exiftool_options="$exiftool_options -xmp:GPSLatitude=\"$LATITUDE_FORMATTED\" -xmp:GPSLongitude=\"$LONGITUDE_FORMATTED\""
+        else
+            # Image files: write to EXIF GPS IFD
+            exiftool_options="$exiftool_options -GPSLatitude=\"$LATITUDE_FORMATTED\" -GPSLongitude=\"$LONGITUDE_FORMATTED\""
+        fi
         GPS_UPDATED=true
     else
         echo "  -> INFO: GPS coordinates not found in $xmp_name."
