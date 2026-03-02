@@ -79,7 +79,7 @@ echo "--------------------------------------------------------"
 # 4. Process all media files
 shopt -s nullglob nocaseglob
 
-for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
+for file in *.jpg *.jpeg *.png *.heic *.mp4 *.mov; do
     [ -f "$file" ] || continue
 
     filename=$(basename "$file")

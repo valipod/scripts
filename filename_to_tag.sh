@@ -119,7 +119,10 @@ if ls *.jpg >/dev/null 2>&1; then echo "-> Executing exiftool for *.jpg files"; 
 if ls *.jpeg >/dev/null 2>&1; then echo "-> Executing exiftool for *.jpeg files"; ${JPEG_DATE_CMD} *.jpeg ; COMMANDS_EXECUTED=1 ; fi
 # Check for uppercase JPG files
 if ls *.JPG >/dev/null 2>&1; then echo "-> Executing exiftool for *.JPG files"; ${JPEG_DATE_CMD} *.JPG ; COMMANDS_EXECUTED=1 ; fi
-if [ "\$COMMANDS_EXECUTED" -eq 0 ]; then echo "No image files found to process (jpg, jpeg, png)." ; fi
+# Check for heic files (case insensitive)
+if ls *.heic >/dev/null 2>&1; then echo "-> Executing exiftool for *.heic files"; ${JPEG_DATE_CMD} *.heic ; COMMANDS_EXECUTED=1 ; fi
+if ls *.HEIC >/dev/null 2>&1; then echo "-> Executing exiftool for *.HEIC files"; ${JPEG_DATE_CMD} *.HEIC ; COMMANDS_EXECUTED=1 ; fi
+if [ "\$COMMANDS_EXECUTED" -eq 0 ]; then echo "No image files found to process (jpg, jpeg, png, heic)." ; fi
 
 echo "--- Starting Video Processing (Timezone: ${TIMEZONE_OFFSET}) ---"
 # Check for lowercase mp4 files
