@@ -87,16 +87,27 @@ for file in *.jpg *.jpeg *.png *.heic *.mp4 *.mov; do
 
     echo "Processing: $filename"
 
-    # Get DateTimeOriginal and SubSecTimeOriginal from EXIF using docker (separate calls to avoid parsing issues)
-    datetime=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s -s -DateTimeOriginal "$file" 2>/dev/null)
-    subsec=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s -s -SubSecTimeOriginal "$file" 2>/dev/null)
+    # Read all needed tags in one docker exec call
+    exif_output=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s \
+        -FileTypeExtension -DateTimeOriginal -CreateDate \
+        -SubSecTimeOriginal -SubSecTimeDigitized \
+        "$file" 2>/dev/null)
+
+    actual_ext=$(echo "$exif_output" | grep "^FileTypeExtension" | sed 's/^[^:]*: //')
+    datetime=$(echo "$exif_output" | grep "^DateTimeOriginal" | sed 's/^[^:]*: //')
+    subsec=$(echo "$exif_output" | grep "^SubSecTimeOriginal" | sed 's/^[^:]*: //')
+
+    # If no DateTimeOriginal, fall back to CreateDate (for videos)
+    if [ -z "$datetime" ]; then
+        datetime=$(echo "$exif_output" | grep "^CreateDate" | sed 's/^[^:]*: //')
+        subsec=$(echo "$exif_output" | grep "^SubSecTimeDigitized" | sed 's/^[^:]*: //')
+    fi
     orig_subsec="$subsec"
 
-    # If no DateTimeOriginal, try CreateDate (for videos)
-    if [ -z "$datetime" ]; then
-        datetime=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s -s -CreateDate "$file" 2>/dev/null)
-        subsec=$(docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" exiftool -s -s -s -SubSecTimeDigitized "$file" 2>/dev/null)
-        orig_subsec="$subsec"
+    # Detect actual file type (handles e.g. JPEG files with .HEIC extension)
+    if [ -n "$actual_ext" ] && [ "${actual_ext,,}" != "${extension,,}" ]; then
+        echo "  -> INFO: Extension mismatch — file is ${actual_ext^^} but named .${extension}. Using .${actual_ext,,}."
+        extension="$actual_ext"
     fi
 
     if [ -z "$datetime" ]; then
