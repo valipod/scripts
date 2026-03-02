@@ -148,30 +148,30 @@ for file in *.jpg *.jpeg *.png *.mp4 *.mov; do
         if [ "$filename" != "$new_filename" ]; then
             # Check if target filename already exists
             if [ -f "$new_filename" ]; then
-                echo "  -> WARNING: Target file $new_filename already exists. Skipping."
-                continue
-            fi
-
-            echo "  -> Renaming to: $new_filename"
-            mv "$file" "$new_filename"
-            if [ $? -eq 0 ]; then
-                echo "  -> Renamed $filename -> $new_filename"
-                # Check for XMP sidecar file and rename it too
-                xmp_file="${file}.xmp"
-                if [ -f "$xmp_file" ]; then
-                    new_xmp_file="${new_filename}.xmp"
-                    mv "$xmp_file" "$new_xmp_file"
-                    if [ $? -eq 0 ]; then
-                        echo "  -> Renamed XMP sidecar: ${filename}.xmp -> ${new_filename}.xmp"
-                    else
-                        echo "  -> ⚠️ WARNING: Failed to rename XMP sidecar"
-                    fi
-                fi
-                target_file="$new_filename"
-                renamed=1
+                echo "  -> WARNING: Target file $new_filename already exists. Skipping rename, still updating EXIF."
+                # target_file remains "$filename" — EXIF update will still run below
             else
-                echo "  -> ❌ ERROR: Failed to rename $filename"
-                continue
+                echo "  -> Renaming to: $new_filename"
+                mv "$file" "$new_filename"
+                if [ $? -eq 0 ]; then
+                    echo "  -> Renamed $filename -> $new_filename"
+                    # Check for XMP sidecar file and rename it too
+                    xmp_file="${file}.xmp"
+                    if [ -f "$xmp_file" ]; then
+                        new_xmp_file="${new_filename}.xmp"
+                        mv "$xmp_file" "$new_xmp_file"
+                        if [ $? -eq 0 ]; then
+                            echo "  -> Renamed XMP sidecar: ${filename}.xmp -> ${new_filename}.xmp"
+                        else
+                            echo "  -> ⚠️ WARNING: Failed to rename XMP sidecar"
+                        fi
+                    fi
+                    target_file="$new_filename"
+                    renamed=1
+                else
+                    echo "  -> ❌ ERROR: Failed to rename $filename"
+                    continue
+                fi
             fi
         else
             echo "  -> INFO: Already named correctly. Updating EXIF."
