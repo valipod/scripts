@@ -35,7 +35,7 @@ if [[ "$TIMEZONE_OFFSET" =~ ^-?[0-9]{1,2}$ ]]; then
     if [[ "$TIMEZONE_OFFSET" =~ ^- ]]; then
         # Negative number
         num="${TIMEZONE_OFFSET#-}"
-        TIMEZONE_OFFSET=$(printf "-%02d:00" "$num")
+        TIMEZONE_OFFSET=$(printf -- "-%02d:00" "$num")
     else
         # Positive number (no sign or implicit +)
         TIMEZONE_OFFSET=$(printf "+%02d:00" "$TIMEZONE_OFFSET")

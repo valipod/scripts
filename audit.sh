@@ -31,7 +31,7 @@ fi
 case "$TIMEZONE_OFFSET" in
     -[0-9]|-[0-9][0-9])
         num="${TIMEZONE_OFFSET#-}"
-        TIMEZONE_OFFSET=$(printf "-%02d:00" "$num")
+        TIMEZONE_OFFSET=$(printf -- "-%02d:00" "$num")
         ;;
     [0-9]|[0-9][0-9])
         TIMEZONE_OFFSET=$(printf "+%02d:00" "$TIMEZONE_OFFSET")
