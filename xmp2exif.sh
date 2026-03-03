@@ -35,6 +35,22 @@ clean_coord() {
     echo "$raw_coord" | sed 's/,/ /g'
 }
 
+# Convert degrees-minutes-direction format to signed decimal degrees
+# Input: "20 34.668N" or "87 15.513W" -> Output: "20.5778000" or "-87.2585500"
+dms_to_decimal() {
+    local dms="$1"
+    local dir="${dms: -1}"
+    local numeric="${dms%[NSEWnsew]}"
+    local degrees="${numeric%% *}"
+    local minutes="${numeric#* }"
+    local decimal
+    decimal=$(awk "BEGIN { printf \"%.7f\", $degrees + $minutes/60 }")
+    if [[ "$dir" == "S" || "$dir" == "W" ]]; then
+        decimal="-$decimal"
+    fi
+    echo "$decimal"
+}
+
 # Find all .xmp files in the target directory and process them
 find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r xmp_file_path; do
 
@@ -61,7 +77,7 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
 
     # 3. Build the ExifTool Command Dynamically
 
-    # Determine if this is a video file (MP4/MOV can't store EXIF GPS IFD — use XMP instead)
+    # Determine if this is a video file (MP4/MOV can't store EXIF GPS IFD — use QuickTime GPS atom instead)
     image_ext="${image_name##*.}"
     image_ext_lower="${image_ext,,}"
     is_video=false
@@ -84,9 +100,12 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
         echo "  -> XMP Coords: Lat $LATITUDE_FORMATTED, Lon $LONGITUDE_FORMATTED"
 
         if [ "$is_video" = true ]; then
-            # Video files: write to XMP group (MP4/MOV don't have EXIF GPS IFD)
-            # Direction is embedded in the coordinate string (e.g. "8 31.98222S") — no separate Ref tag in XMP
-            exiftool_options="$exiftool_options -xmp:GPSLatitude=\"$LATITUDE_FORMATTED\" -xmp:GPSLongitude=\"$LONGITUDE_FORMATTED\""
+            # Video files: write to QuickTime UserData GPS atom (MP4/MOV don't have EXIF GPS IFD)
+            # Convert DMS+direction to signed decimal degrees, then format as ISO 6709
+            LAT_DECIMAL=$(dms_to_decimal "$LATITUDE_FORMATTED")
+            LON_DECIMAL=$(dms_to_decimal "$LONGITUDE_FORMATTED")
+            GPS_ISO=$(printf "%+.7f%+.7f/" "$LAT_DECIMAL" "$LON_DECIMAL")
+            exiftool_options="$exiftool_options -UserData:GPSCoordinates=\"$GPS_ISO\""
         else
             # Image files: write to EXIF GPS IFD
             exiftool_options="$exiftool_options -GPSLatitude=\"$LATITUDE_FORMATTED\" -GPSLatitudeRef=$LAT_REF -GPSLongitude=\"$LONGITUDE_FORMATTED\" -GPSLongitudeRef=$LON_REF"
