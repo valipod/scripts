@@ -77,14 +77,19 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
         LATITUDE_FORMATTED=$(clean_coord "$RAW_LAT")
         LONGITUDE_FORMATTED=$(clean_coord "$RAW_LON")
 
+        # Direction reference is always the last character (N/S for lat, E/W for lon)
+        LAT_REF="${LATITUDE_FORMATTED: -1}"
+        LON_REF="${LONGITUDE_FORMATTED: -1}"
+
         echo "  -> XMP Coords: Lat $LATITUDE_FORMATTED, Lon $LONGITUDE_FORMATTED"
 
         if [ "$is_video" = true ]; then
             # Video files: write to XMP group (MP4/MOV don't have EXIF GPS IFD)
+            # Direction is embedded in the coordinate string (e.g. "8 31.98222S") — no separate Ref tag in XMP
             exiftool_options="$exiftool_options -xmp:GPSLatitude=\"$LATITUDE_FORMATTED\" -xmp:GPSLongitude=\"$LONGITUDE_FORMATTED\""
         else
             # Image files: write to EXIF GPS IFD
-            exiftool_options="$exiftool_options -GPSLatitude=\"$LATITUDE_FORMATTED\" -GPSLongitude=\"$LONGITUDE_FORMATTED\""
+            exiftool_options="$exiftool_options -GPSLatitude=\"$LATITUDE_FORMATTED\" -GPSLatitudeRef=$LAT_REF -GPSLongitude=\"$LONGITUDE_FORMATTED\" -GPSLongitudeRef=$LON_REF"
         fi
         GPS_UPDATED=true
     else
