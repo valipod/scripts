@@ -21,12 +21,6 @@ if [[ "$CONTAINER_WORK_DIR" != /volume1* ]]; then
     exit 1
 fi
 
-# Check if .location marker file exists (skip if already processed)
-if [ -f ".location" ]; then
-    echo "Skipping: .location file exists in $CONTAINER_WORK_DIR (already processed)"
-    exit 0
-fi
-
 # Function to clean and format coordinates for exiftool
 # Changes format from 11,6.6888N to 11 6.6888N (Degrees Minutes Direction)
 clean_coord() {
@@ -169,10 +163,6 @@ find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r 
     echo "---"
 
 done
-
-# Create .location marker file to indicate processing is complete
-touch .location
-echo "Created .location marker file in $CONTAINER_WORK_DIR"
 
 echo "--------------------------------------------------------"
 echo "Script finished."
