@@ -2,10 +2,11 @@
 
 if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     cat <<'EOF'
-Usage: ff [OPTIONS]
+Usage: ff INPUT [INPUT...] [OPTIONS] OUTPUT
 
-Inputs:
-  --i1..i5 FILE        Input files (up to 5)
+Positional arguments:
+  INPUT                Input files (first N-1 bare arguments)
+  OUTPUT               Output file (last bare argument)
 
 Stream mapping:
   --v STREAM           Video stream map (default: 0:v:0)
@@ -34,308 +35,115 @@ Titles:
 Other:
   --ac VALUE           Audio channels (-ac)
   --af                 Add async audio resampling
-  --target FILE        Output file
+
+Example:
+  ff movie.mkv movie.ro.srt movie.en.srt --ca1 aac somepath/movie.mkv
 EOF
     exit 0
 fi
 
-optspec=":-:"
-while getopts "$optspec" optchar; do
-    case "${optchar}" in
-        -)
-            case "${OPTARG}" in
-                i1)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    i1="-i \"${val}\"";
-                    ;;
-                i2)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    i2="-i \"${val}\"";
-                    ;;
-                i3)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    i3="-i \"${val}\"";
-                    ;;
-                i4)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    i4="-i \"${val}\"";
-                    ;;
-                i5)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    i5="-i \"${val}\"";
-                    ;;
-                v)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    v="-map ${val}";
-                    ;;
-                a1)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    a1="-map ${val}";
-                    ;;
-                a2)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    a2="-map ${val} -disposition:a:1 0";
-                    ;;
-                a3)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    a3="-map ${val} -disposition:a:2 0";
-                    ;;
-                a4)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    a4="-map ${val} -disposition:a:3 0";
-                    ;;
-                s1)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    s1="-map ${val}";
-                    ;;
-                s2)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    s2="-map ${val} -disposition:s:1 0";
-                    ;;
-                s3)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    s3="-map ${val} -disposition:s:2 0";
-                    ;;
-                s4)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    s4="-map ${val} -disposition:s:3 0";
-                    ;;
-                s5)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    s5="-map ${val} -disposition:s:4 0";
-                    ;;
-                s6)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    s6="-map ${val} -disposition:s:5 0";
-                    ;;
-                s7)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    s7="-map ${val} -disposition:s:6 0";
-                    ;;
-                cv)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    cv="-c:v ${val}";
-                    ;;
-                cvc)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    cvc="-crf ${val}";
-                    ;;
-                ca1)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-					if [[ ${val} == "aac" ]]
-					then
-                        ca1="-c:a:0 libfdk_aac -vbr 4";
-					elif [[ ${val} == "ac3" ]]
-					then
-					    ca1="-c:a:0 ac3 -b:a 640k"
-					elif [[ ${val} == "mp3" ]]
-					then
-					    ca1="-c:a:0 libmp3lame -q 2"
-					else
-                        ca1="-c:a:0 ${val}";
-					fi
-                    ;;
-                ca1c)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ca1c="-q ${val}";
-                    ;;
-                ca2)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-					if [[ ${val} == "aac" ]]
-					then
-                        ca2="-c:a:1 libfdk_aac -vbr 4";
-					elif [[ ${val} == "ac3" ]]
-					then
-					    ca2="-c:a:1 ac3 -b:a 640k"
-					elif [[ ${val} == "mp3" ]]
-					then
-					    ca2="-c:a:1 libmp3lame -q 2"
-					else
-                        ca2="-c:a:1 ${val}";
-					fi
-                    ;;
-                ca2c)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ca2c="-q ${val}";
-                    ;;
-                ca3)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-					if [[ ${val} == "aac" ]]
-					then
-                        ca3="-c:a:2 libfdk_aac -vbr 4";
-					elif [[ ${val} == "ac3" ]]
-					then
-					    ca3="-c:a:2 ac3 -b:a 640k"
-					elif [[ ${val} == "mp3" ]]
-					then
-					    ca3="-c:a:2 libmp3lame -q 2"
-					else
-                        ca3="-c:a:2 ${val}";
-					fi
-                    ;;
-                ca3c)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ca3c="-q ${val}";
-                    ;;
-                ca4)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-					if [[ ${val} == "aac" ]]
-					then
-                        ca4="-c:a:3 libfdk_aac -vbr 4";
-					elif [[ ${val} == "ac3" ]]
-					then
-					    ca4="-c:a:3 ac3 -b:a 640k"
-					elif [[ ${val} == "mp3" ]]
-					then
-					    ca4="-c:a:3 libmp3lame -q 2"
-					else
-                        ca4="-c:a:3 ${val}";
-					fi
-                    ;;
-                ca4c)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ca4c="-q ${val}";
-                    ;;
-                lv1)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    lv1="-metadata:s:v:0 language=${val}";
-                    ;;
-                la1)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    la1="-metadata:s:a:0 language=${val}";
-                    ;;
-                la2)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    la2="-metadata:s:a:1 language=${val}";
-                    ;;
-                la3)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    la3="-metadata:s:a:2 language=${val}";
-                    ;;
-                ls1)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ls1="-metadata:s:s:0 language=${val}";
-                    ;;
-                ls2)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ls2="-metadata:s:s:1 language=${val}";
-                    ;;
-                ls3)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ls3="-metadata:s:s:2 language=${val}";
-                    ;;
-                ls4)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ls4="-metadata:s:s:3 language=${val}";
-                    ;;
-                ls5)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ls5="-metadata:s:s:4 language=${val}";
-                    ;;
-                ls6)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ls6="-metadata:s:s:5 language=${val}";
-                    ;;
-                ls7)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ls7="-metadata:s:s:6 language=${val}";
-                    ;;
-                da1)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    da1="-disposition:a:0 ${val}";
-                    ;;
-                da2)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    da2="-disposition:a:1 ${val}";
-                    ;;
-                da3)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    da3="-disposition:a:2 ${val}";
-                    ;;
-                ds1)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ds1="-disposition:s:0 ${val}";
-                    ;;
-                ds2)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ds2="-disposition:s:1 ${val}";
-                    ;;
-                ds3)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ds3="-disposition:s:2 ${val}";
-                    ;;
-                ta2)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ta2="-metadata:s:a:1 title=${val}";
-                    ;;
-                ta3)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ta3="-metadata:s:a:2 title=${val}";
-                    ;;
-                ts1)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ts1="-metadata:s:s:0 title=\"${val}\"";
-                    ;;
-                ts2)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ts2="-metadata:s:s:1 title=\"${val}\"";
-                    ;;
-                ts3)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ts3="-metadata:s:s:2 title=\"${val}\"";
-                    ;;
-                ts4)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ts4="-metadata:s:s:3 title=\"${val}\"";
-                    ;;
-                ts5)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ts5="-metadata:s:s:4 title=\"${val}\"";
-                    ;;
-                ts6)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ts6="-metadata:s:s:5 title=\"${val}\"";
-                    ;;
-                ts7)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ts7="-metadata:s:s:6 title=\"${val}\"";
-                    ;;
-                ac)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    ac="-ac ${val}";
-                    ;;
-                af)
-                    af="-af aresample=async=1";
-                    ;;
-                target)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-                    target="\"${val}\"";
-                    ;;
-            esac;;
+positional=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --v)   v="-map $2"; shift 2 ;;
+        --a1)  a1="-map $2"; shift 2 ;;
+        --a2)  a2="-map $2 -disposition:a:1 0"; shift 2 ;;
+        --a3)  a3="-map $2 -disposition:a:2 0"; shift 2 ;;
+        --a4)  a4="-map $2 -disposition:a:3 0"; shift 2 ;;
+        --s1)  s1="-map $2"; shift 2 ;;
+        --s2)  s2="-map $2 -disposition:s:1 0"; shift 2 ;;
+        --s3)  s3="-map $2 -disposition:s:2 0"; shift 2 ;;
+        --s4)  s4="-map $2 -disposition:s:3 0"; shift 2 ;;
+        --s5)  s5="-map $2 -disposition:s:4 0"; shift 2 ;;
+        --s6)  s6="-map $2 -disposition:s:5 0"; shift 2 ;;
+        --s7)  s7="-map $2 -disposition:s:6 0"; shift 2 ;;
+        --cv)  cv="-c:v $2"; shift 2 ;;
+        --cvc) cvc="-crf $2"; shift 2 ;;
+        --ca1)
+            case "$2" in
+                aac) ca1="-c:a:0 libfdk_aac -vbr 4" ;;
+                ac3) ca1="-c:a:0 ac3 -b:a 640k" ;;
+                mp3) ca1="-c:a:0 libmp3lame -q 2" ;;
+                *)   ca1="-c:a:0 $2" ;;
+            esac; shift 2 ;;
+        --ca1c) ca1c="-q $2"; shift 2 ;;
+        --ca2)
+            case "$2" in
+                aac) ca2="-c:a:1 libfdk_aac -vbr 4" ;;
+                ac3) ca2="-c:a:1 ac3 -b:a 640k" ;;
+                mp3) ca2="-c:a:1 libmp3lame -q 2" ;;
+                *)   ca2="-c:a:1 $2" ;;
+            esac; shift 2 ;;
+        --ca2c) ca2c="-q $2"; shift 2 ;;
+        --ca3)
+            case "$2" in
+                aac) ca3="-c:a:2 libfdk_aac -vbr 4" ;;
+                ac3) ca3="-c:a:2 ac3 -b:a 640k" ;;
+                mp3) ca3="-c:a:2 libmp3lame -q 2" ;;
+                *)   ca3="-c:a:2 $2" ;;
+            esac; shift 2 ;;
+        --ca3c) ca3c="-q $2"; shift 2 ;;
+        --ca4)
+            case "$2" in
+                aac) ca4="-c:a:3 libfdk_aac -vbr 4" ;;
+                ac3) ca4="-c:a:3 ac3 -b:a 640k" ;;
+                mp3) ca4="-c:a:3 libmp3lame -q 2" ;;
+                *)   ca4="-c:a:3 $2" ;;
+            esac; shift 2 ;;
+        --ca4c) ca4c="-q $2"; shift 2 ;;
+        --lv1) lv1="-metadata:s:v:0 language=$2"; shift 2 ;;
+        --la1) la1="-metadata:s:a:0 language=$2"; shift 2 ;;
+        --la2) la2="-metadata:s:a:1 language=$2"; shift 2 ;;
+        --la3) la3="-metadata:s:a:2 language=$2"; shift 2 ;;
+        --ls1) ls1="-metadata:s:s:0 language=$2"; shift 2 ;;
+        --ls2) ls2="-metadata:s:s:1 language=$2"; shift 2 ;;
+        --ls3) ls3="-metadata:s:s:2 language=$2"; shift 2 ;;
+        --ls4) ls4="-metadata:s:s:3 language=$2"; shift 2 ;;
+        --ls5) ls5="-metadata:s:s:4 language=$2"; shift 2 ;;
+        --ls6) ls6="-metadata:s:s:5 language=$2"; shift 2 ;;
+        --ls7) ls7="-metadata:s:s:6 language=$2"; shift 2 ;;
+        --da1) da1="-disposition:a:0 $2"; shift 2 ;;
+        --da2) da2="-disposition:a:1 $2"; shift 2 ;;
+        --da3) da3="-disposition:a:2 $2"; shift 2 ;;
+        --ds1) ds1="-disposition:s:0 $2"; shift 2 ;;
+        --ds2) ds2="-disposition:s:1 $2"; shift 2 ;;
+        --ds3) ds3="-disposition:s:2 $2"; shift 2 ;;
+        --ta2) ta2="-metadata:s:a:1 title=$2"; shift 2 ;;
+        --ta3) ta3="-metadata:s:a:2 title=$2"; shift 2 ;;
+        --ts1) ts1="-metadata:s:s:0 title=\"$2\""; shift 2 ;;
+        --ts2) ts2="-metadata:s:s:1 title=\"$2\""; shift 2 ;;
+        --ts3) ts3="-metadata:s:s:2 title=\"$2\""; shift 2 ;;
+        --ts4) ts4="-metadata:s:s:3 title=\"$2\""; shift 2 ;;
+        --ts5) ts5="-metadata:s:s:4 title=\"$2\""; shift 2 ;;
+        --ts6) ts6="-metadata:s:s:5 title=\"$2\""; shift 2 ;;
+        --ts7) ts7="-metadata:s:s:6 title=\"$2\""; shift 2 ;;
+        --ac)  ac="-ac $2"; shift 2 ;;
+        --af)  af="-af aresample=async=1"; shift ;;
+        --)    shift; positional+=("$@"); break ;;
+        --*)   echo "Unknown option: $1"; exit 1 ;;
+        *)     positional+=("$1"); shift ;;
     esac
 done
-if [ -z "$v" ]
-then
-    v="-map 0:v:0";
+
+if [ ${#positional[@]} -lt 2 ]; then
+    echo "Need at least one input and one output"
+    exit 1
 fi
-if [ -z "$a1" ]
-then
-    a1="-map 0:a";
-fi
-if [ -z "$s1" ]
-then
-    s1="-map 0:s:0";
-fi
-if [ -z "$da1" ]
-then
-    da1="-disposition:a:0 default";
-fi
-if [ -z "$ds1" ]
-then
-    ds1="-disposition:s:0 default";
-fi
-cmd="ffmpeg $i1 $i2 $i3 $i4 $i5 $v $a1 $a2 $a3 $a4 $s1 $s2 $s3 $s4 $s5 $s6 $s7 -c copy $cv $cvc $ca1 $ca1c $ac $ca2 $ca2c $ca3 $ca3c $ca4 $ca4c $lv1 $la1 $la2 $la3 $ls1 $ls2 $ls3 $ls4 $ls5 $ls6 $ls7 $da1 $da2 $da3 $ds1 $ds2 $ds3 -metadata title= -metadata:s:v title= -metadata:s:a:0 title=  $ta2 $ta3 $ts1 $ts2 $ts3 $ts4 $ts5 $ts6 $ts7 -max_interleave_delta 0 $af $target"
+
+# Last positional = target, rest = inputs
+target="\"${positional[-1]}\""
+inputs=""
+for ((i=0; i<${#positional[@]}-1; i++)); do
+    inputs="$inputs -i \"${positional[i]}\""
+done
+
+[ -z "$v" ]   && v="-map 0:v:0"
+[ -z "$a1" ]  && a1="-map 0:a"
+[ -z "$s1" ]  && s1="-map 0:s:0"
+[ -z "$da1" ] && da1="-disposition:a:0 default"
+[ -z "$ds1" ] && ds1="-disposition:s:0 default"
+
+cmd="ffmpeg$inputs $v $a1 $a2 $a3 $a4 $s1 $s2 $s3 $s4 $s5 $s6 $s7 -c copy $cv $cvc $ca1 $ca1c $ac $ca2 $ca2c $ca3 $ca3c $ca4 $ca4c $lv1 $la1 $la2 $la3 $ls1 $ls2 $ls3 $ls4 $ls5 $ls6 $ls7 $da1 $da2 $da3 $ds1 $ds2 $ds3 -metadata title= -metadata:s:v title= -metadata:s:a:0 title= $ta2 $ta3 $ts1 $ts2 $ts3 $ts4 $ts5 $ts6 $ts7 -max_interleave_delta 0 $af $target"
 echo $cmd
 read -p "Press enter to continue"
 eval $cmd
-
