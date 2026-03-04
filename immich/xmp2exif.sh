@@ -1,12 +1,16 @@
 #!/bin/bash
 
-# --- CONFIGURATION ---
-# The local directory path containing the XMP files and images.
-LOCAL_PHOTO_DIR="."
+# Usage: xmp2exif.sh [file]
+# Examples:
+#   xmp2exif.sh              # process all XMP sidecars in current folder
+#   xmp2exif.sh image.jpg    # process only image.jpg.xmp
 
-# Docker container configuration
+# --- CONFIGURATION ---
+LOCAL_PHOTO_DIR="."
 CONTAINER_NAME="exiftool"
 CONTAINER_BASE_DIR="/volume1"
+
+SINGLE_FILE=$1
 
 # --- MAIN SCRIPT LOGIC ---
 echo "XMP Sidecar to EXIF Sync Started..."
@@ -45,8 +49,18 @@ dms_to_decimal() {
     echo "$decimal"
 }
 
-# Find all .xmp files in the target directory and process them
-find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f -iname "*.xmp" | while IFS= read -r xmp_file_path; do
+# Find XMP files to process
+if [ -n "$SINGLE_FILE" ]; then
+    # Strip .xmp suffix if provided, then re-add it
+    SINGLE_FILE="${SINGLE_FILE%.xmp}"
+    FIND_PATTERN="-name"
+    FIND_ARG="$(basename "$SINGLE_FILE").xmp"
+else
+    FIND_PATTERN="-iname"
+    FIND_ARG="*.xmp"
+fi
+
+find "$LOCAL_PHOTO_DIR" -maxdepth 1 -type f $FIND_PATTERN "$FIND_ARG" | while IFS= read -r xmp_file_path; do
 
     # 1. Determine the corresponding image file path
     image_file_path="${xmp_file_path%.xmp}"

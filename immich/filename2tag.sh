@@ -3,10 +3,11 @@
 # This script extracts date/time from filenames and writes to EXIF tags.
 # By default, only writes tags if missing. Use -f to force overwrite.
 #
-# Usage: filename_to_tag.sh [-f] <timezone_offset>
+# Usage: filename_to_tag.sh [-f] <timezone_offset> [file]
 # Examples:
-#   filename_to_tag.sh +03:00        # Only write if tag is missing
-#   filename_to_tag.sh -f +03:00     # Force overwrite existing tags
+#   filename_to_tag.sh +03:00              # All files, only write if tag is missing
+#   filename_to_tag.sh -f +03:00           # All files, force overwrite existing tags
+#   filename_to_tag.sh -6 image.jpg        # Single file
 
 # --- Define Constants ---
 CONTAINER_NAME="exiftool"
@@ -24,6 +25,7 @@ if [ "$1" = "-f" ]; then
 fi
 
 TIMEZONE_OFFSET=$1
+SINGLE_FILE=$2
 
 # 3. Validation
 # Check if a parameter was provided
@@ -75,8 +77,8 @@ if [[ "$CONTAINER_WORK_DIR" != /volume1* ]]; then
     exit 1
 fi
 
-# 4b. Check if .time marker file exists (skip if already processed)
-if [ -f ".time" ]; then
+# 4b. Check if .time marker file exists (skip if already processed) — only for batch mode
+if [ -z "$SINGLE_FILE" ] && [ -f ".time" ]; then
     echo "Skipping: .time file exists in $CONTAINER_WORK_DIR (already processed)"
     exit 0
 fi
@@ -106,7 +108,20 @@ JPEG_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-DateTimeOriginal<\$
 # Use single quotes around the ExifTool substitution block to protect it from the outer shell
 VIDEO_DATE_CMD="exiftool -n -overwrite_original_in_place -P '-DateTimeOriginal<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})(-(\d{3}))?.*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-CreateDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})(-(\d{3}))?.*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-ModifyDate<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})(-(\d{3}))?.*/\$1:\$2:\$3 \$4:\$5:\$6${TIMEZONE_OFFSET}/}' '-SubSecTimeOriginal<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})(-(\d{3}))?.*/defined \$8 ? \$8 : \"000\"/e}' '-SubSecTimeDigitized<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})(-(\d{3}))?.*/defined \$8 ? \$8 : \"000\"/e}' '-SubSecTime<\${filename;s/^(\d{4})-(\d{2})-(\d{2})[ _]+(\d{2})-(\d{2})-(\d{2})(-(\d{3}))?.*/defined \$8 ? \$8 : \"000\"/e}' -OffsetTime='${TIMEZONE_OFFSET}' -OffsetTimeOriginal='${TIMEZONE_OFFSET}' -OffsetTimeDigitized='${TIMEZONE_OFFSET}' ${VIDEO_IF_CONDITION}"
 
-# 6. Build the combined execution script ('all' media processing)
+# 6. Single file mode — run directly and exit
+if [ -n "$SINGLE_FILE" ]; then
+    sf_ext="${SINGLE_FILE##*.}"
+    sf_ext_lower="${sf_ext,,}"
+    if [[ "$sf_ext_lower" == "mp4" || "$sf_ext_lower" == "mov" ]]; then
+        FINAL_CMD="${VIDEO_DATE_CMD} \"${SINGLE_FILE}\""
+    else
+        FINAL_CMD="${JPEG_DATE_CMD} \"${SINGLE_FILE}\""
+    fi
+    docker exec -w "${CONTAINER_WORK_DIR}" "${CONTAINER_NAME}" sh -c "$FINAL_CMD"
+    exit $?
+fi
+
+# 7. Build the combined execution script ('all' media processing)
 CONTAINER_SCRIPT=$(cat <<EOF
 COMMANDS_EXECUTED=0
 

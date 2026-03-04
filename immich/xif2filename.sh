@@ -5,11 +5,11 @@
 #
 # Output format: YYYY-MM-DD HH-mm-ss-SSS.ext
 #
-# Usage: exif_to_filename.sh <timezone_offset>
+# Usage: exif_to_filename.sh <timezone_offset> [file]
 # Examples:
-#   exif_to_filename.sh 3           # timezone +03:00
-#   exif_to_filename.sh -5          # timezone -05:00
-#   exif_to_filename.sh +02:00      # timezone +02:00
+#   exif_to_filename.sh 3           # all files in current folder, timezone +03:00
+#   exif_to_filename.sh -5          # all files in current folder, timezone -05:00
+#   exif_to_filename.sh +02:00 image.jpg   # single file
 
 # --- Define Constants ---
 CONTAINER_NAME="exiftool"
@@ -19,6 +19,7 @@ CONTAINER_BASE_DIR="/volume1"
 CONTAINER_WORK_DIR=$(pwd)
 
 TIMEZONE_OFFSET=$1
+SINGLE_FILE=$2
 
 # 2. Validation
 # Check if a parameter was provided
@@ -67,8 +68,8 @@ if [[ "$CONTAINER_WORK_DIR" != /volume1* ]]; then
     exit 1
 fi
 
-# 3b. Check if .filename marker file exists (skip if already processed)
-if [ -f ".filename" ]; then
+# 3b. Check if .filename marker file exists (skip if already processed) — only for batch mode
+if [ -z "$SINGLE_FILE" ] && [ -f ".filename" ]; then
     echo "Skipping: .filename file exists in $CONTAINER_WORK_DIR (already processed)"
     exit 0
 fi
@@ -79,7 +80,13 @@ echo "--------------------------------------------------------"
 # 4. Process all media files
 shopt -s nullglob nocaseglob
 
-for file in *.jpg *.jpeg *.png *.heic *.mp4 *.mov; do
+if [ -n "$SINGLE_FILE" ]; then
+    file_list=("$SINGLE_FILE")
+else
+    file_list=(*.jpg *.jpeg *.png *.heic *.mp4 *.mov)
+fi
+
+for file in "${file_list[@]}"; do
     [ -f "$file" ] || continue
 
     filename=$(basename "$file")
@@ -235,8 +242,10 @@ done
 
 shopt -u nullglob nocaseglob
 
-# Create .filename marker file to indicate processing is complete
-touch .filename
-echo "Created .filename marker file in $CONTAINER_WORK_DIR"
+# Create .filename marker file to indicate processing is complete (batch mode only)
+if [ -z "$SINGLE_FILE" ]; then
+    touch .filename
+    echo "Created .filename marker file in $CONTAINER_WORK_DIR"
+fi
 echo "--------------------------------------------------------"
 echo "Script finished."
