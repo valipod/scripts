@@ -22,10 +22,7 @@ with open('chapters.txt', 'r') as f:
             continue
         y = re.match(r"CHAPTER\d{2}NAME=([\S\ ]+)", line)
         if y:
-            # every other line doesn't contain any new information but
-            # is formatted differently
-            y = re.match(r"CHAPTER\d{2}NAME=([\S\ ]+)", line)
-            title = y.group(0)
+            title = y.group(1)
             chap["title"] = title
             chapters.append(chap)
 
@@ -45,14 +42,8 @@ for i in range(len(chapters) - 1):
     title = chap['title']
     start = chap['startTime']
     end = chapters[i + 1]['startTime'] - 1
-    text += """
-[CHAPTER]
-TIMEBASE=1/1000
-START={start}
-END={end}
-title={title}
-""".format(start=start, end=end, title=title)
+    text += template.format(start=start, end=end, title=title)
 
 
-with open("chapters.ffmpeg.txt", "a") as myfile:
+with open("chapters.ffmpeg.txt", "w") as myfile:
     myfile.write(text)

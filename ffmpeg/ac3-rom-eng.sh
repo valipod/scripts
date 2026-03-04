@@ -1,8 +1,9 @@
+#!/usr/bin/env bash
 if [ $# -eq 0 ]
   then
     echo "No arguments supplied"
 fi
-#for file in *.mkv;do ffmpeg -i $file -i `basename $file .mkv`.ro.srt -map 0:v:0 -map 0:a:0 -map 1:0 -map 0:s:0 -metadata:s:s:0 language=ron -c copy -c:a ac3 -max_interleave_delta 0 ../${file}; done
+shopt -s nullglob
 for file in *.mkv
 do
   if [ -z "$1" ];

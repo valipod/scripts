@@ -1,4 +1,44 @@
-#!/usr/bin/env bash 
+#!/usr/bin/env bash
+
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    cat <<'EOF'
+Usage: ff [OPTIONS]
+
+Inputs:
+  --i1..i5 FILE        Input files (up to 5)
+
+Stream mapping:
+  --v STREAM           Video stream map (default: 0:v:0)
+  --a1..a4 STREAM      Audio stream maps (default: 0:a)
+  --s1..s7 STREAM      Subtitle stream maps (default: 0:s:0)
+
+Codecs:
+  --cv CODEC           Video codec (-c:v)
+  --cvc VALUE          Video CRF value
+  --ca1..ca4 CODEC     Audio codec (aac|ac3|mp3 have presets, or pass raw)
+  --ca1c..ca4c VALUE   Audio quality override (-q)
+
+Languages:
+  --lv1 LANG           Video language metadata
+  --la1..la3 LANG      Audio language metadata
+  --ls1..ls7 LANG      Subtitle language metadata
+
+Dispositions:
+  --da1..da3 VALUE     Audio disposition (default: a:0=default)
+  --ds1..ds3 VALUE     Subtitle disposition (default: s:0=default)
+
+Titles:
+  --ta2..ta3 TITLE     Audio stream title
+  --ts1..ts7 TITLE     Subtitle stream title
+
+Other:
+  --ac VALUE           Audio channels (-ac)
+  --af                 Add async audio resampling
+  --target FILE        Output file
+EOF
+    exit 0
+fi
+
 optspec=":-:"
 while getopts "$optspec" optchar; do
     case "${optchar}" in
@@ -82,15 +122,15 @@ while getopts "$optspec" optchar; do
                     ;;
                 ca1)
                     val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-					if [[ ${val} -eq "aac" ]]
+					if [[ ${val} == "aac" ]]
 					then
                         ca1="-c:a:0 libfdk_aac -vbr 4";
-					elif [[ ${val} -eq "ac3" ]]
+					elif [[ ${val} == "ac3" ]]
 					then
 					    ca1="-c:a:0 ac3 -b:a 640k"
-					elif [[ ${val} -eq "mp3" ]]
+					elif [[ ${val} == "mp3" ]]
 					then
-					    ca1="-c:a:0 libmp3lame -q 2" ]]
+					    ca1="-c:a:0 libmp3lame -q 2"
 					else
                         ca1="-c:a:0 ${val}";
 					fi
@@ -101,15 +141,15 @@ while getopts "$optspec" optchar; do
                     ;;
                 ca2)
                     val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-					if [[ ${val} -eq "aac" ]]
+					if [[ ${val} == "aac" ]]
 					then
                         ca2="-c:a:1 libfdk_aac -vbr 4";
-					elif [[ ${val} -eq "ac3" ]]
+					elif [[ ${val} == "ac3" ]]
 					then
 					    ca2="-c:a:1 ac3 -b:a 640k"
-					elif [[ ${val} -eq "mp3" ]]
+					elif [[ ${val} == "mp3" ]]
 					then
-					    ca2="-c:a:1 libmp3lame -q 2" ]]
+					    ca2="-c:a:1 libmp3lame -q 2"
 					else
                         ca2="-c:a:1 ${val}";
 					fi
@@ -120,15 +160,15 @@ while getopts "$optspec" optchar; do
                     ;;
                 ca3)
                     val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-					if [[ ${val} -eq "aac" ]]
+					if [[ ${val} == "aac" ]]
 					then
                         ca3="-c:a:2 libfdk_aac -vbr 4";
-					elif [[ ${val} -eq "ac3" ]]
+					elif [[ ${val} == "ac3" ]]
 					then
 					    ca3="-c:a:2 ac3 -b:a 640k"
-					elif [[ ${val} -eq "mp3" ]]
+					elif [[ ${val} == "mp3" ]]
 					then
-					    ca3="-c:a:2 libmp3lame -q 2" ]]
+					    ca3="-c:a:2 libmp3lame -q 2"
 					else
                         ca3="-c:a:2 ${val}";
 					fi
@@ -139,20 +179,20 @@ while getopts "$optspec" optchar; do
                     ;;
                 ca4)
                     val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
-					if [[ ${val} -eq "aac" ]]
+					if [[ ${val} == "aac" ]]
 					then
-                        ca3="-c:a:3 libfdk_aac -vbr 4";
-					elif [[ ${val} -eq "ac3" ]]
+                        ca4="-c:a:3 libfdk_aac -vbr 4";
+					elif [[ ${val} == "ac3" ]]
 					then
-					    ca3="-c:a:3 ac3 -b:a 640k"
-					elif [[ ${val} -eq "mp3" ]]
+					    ca4="-c:a:3 ac3 -b:a 640k"
+					elif [[ ${val} == "mp3" ]]
 					then
-					    ca3="-c:a:3 libmp3lame -q 2" ]]
+					    ca4="-c:a:3 libmp3lame -q 2"
 					else
-                        ca3="-c:a:3 ${val}";
+                        ca4="-c:a:3 ${val}";
 					fi
                     ;;
-                ca3c)
+                ca4c)
                     val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
                     ca4c="-q ${val}";
                     ;;
@@ -265,7 +305,6 @@ while getopts "$optspec" optchar; do
                     ac="-ac ${val}";
                     ;;
                 af)
-                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
                     af="-af aresample=async=1";
                     ;;
                 target)
@@ -287,7 +326,16 @@ if [ -z "$s1" ]
 then
     s1="-map 0:s:0";
 fi
-echo ffmpeg $i1 $i2 $i3 $i4 $i5 $v $a1 $a2 $a3 $a4 $s1 $s2 $s3 $s4 $s5 $s6 $s7 -c copy $cv $cvc $ca1 $ca1c $ac $ca2 $ca2c $ca3 $ca3c $ca4 $ca4c $lv1 $la1 $la2 $la3 $ls1 $ls2 $ls3 $ls4 $ls5 $ls6 $ls7 $da1 $da2 $da3 $ds1 $ds2 $ds3 -metadata title= -metadata:s:v title= -metadata:s:a:0 title=  $ta2 $ta3 $ts1 $ts2 $ts3 $ts4 $ts5 $ts6 $ts7 -max_interleave_delta 0 $af -disposition:a:0 default -disposition:s:0 default $target
-#read -p "Press enter to continue"
-#ffmpeg $i1 $i2 $i3 $i4 $i5 $v $a1 $a2 $a3 $a4 $s1 $s2 $s3 $s4 -c copy $cv $cvc $ca1 $ca1c $ac $ca2 $ca2c $ca3 $ca3c $ca4 $ca4c $lv1 $la1 $la2 $la3 $ls1 $ls2 $ls3 $da1 $da2 $da3 $ds1 $ds2 $ds3 -metadata title= -metadata:s:v title= -metadata:s:a:0 title=  $ta2 $ta3 $ts1 $ts2 $ts3 $ts4 -max_interleave_delta 0 $af -disposition:a:0 default -disposition:s:0 default $target
+if [ -z "$da1" ]
+then
+    da1="-disposition:a:0 default";
+fi
+if [ -z "$ds1" ]
+then
+    ds1="-disposition:s:0 default";
+fi
+cmd="ffmpeg $i1 $i2 $i3 $i4 $i5 $v $a1 $a2 $a3 $a4 $s1 $s2 $s3 $s4 $s5 $s6 $s7 -c copy $cv $cvc $ca1 $ca1c $ac $ca2 $ca2c $ca3 $ca3c $ca4 $ca4c $lv1 $la1 $la2 $la3 $ls1 $ls2 $ls3 $ls4 $ls5 $ls6 $ls7 $da1 $da2 $da3 $ds1 $ds2 $ds3 -metadata title= -metadata:s:v title= -metadata:s:a:0 title=  $ta2 $ta3 $ts1 $ts2 $ts3 $ts4 $ts5 $ts6 $ts7 -max_interleave_delta 0 $af $target"
+echo $cmd
+read -p "Press enter to continue"
+eval $cmd
 
