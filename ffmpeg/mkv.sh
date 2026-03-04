@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
+codec="-c copy"
 af=""
-if [ "$1" = "dts" ]; then
-  af="-af aresample=async=1"
-  shift
-fi
+case "$1" in
+  aac) codec="-c copy -c:a libfdk_aac -vbr 4"; shift ;;
+  dts) codec="-c copy -c:a libfdk_aac -vbr 4"; af="-af aresample=async=1"; shift ;;
+  copy) shift ;;
+esac
 
 outdir=""
 args=()
@@ -44,25 +46,25 @@ for file in *.mkv; do
     fi
 
     if [ -n "$ro_srt" ] && [ -n "$en_srt" ]; then
-      # Mode 1.2: two external subtitles
+      # Two external subtitles
       dest="${outdir:-..}/${file}"
       ffmpeg -i "$file" -i "$ro_srt" -i "$en_srt" \
         -map 0:v:0 -map 0:a:0 -map 1:0 -map 2:0 \
         -metadata:s:s:0 language=ron -metadata:s:s:1 language=eng \
         -disposition:s:0 default \
-        -c copy -c:a libfdk_aac $af -vbr 4 \
+        $codec $af \
         -metadata title= -metadata:s:v title= -metadata:s:a title= -metadata:s:s title= \
         -max_interleave_delta 0 "$dest"
 
     elif [ -n "$ro_srt" ] || [ -n "$any_srt" ]; then
-      # Mode 1.1: one external subtitle (Romanian) + first internal subtitle
+      # One external subtitle (Romanian) + first internal subtitle
       sub="${ro_srt:-$any_srt}"
       dest="${outdir:-..}/${file}"
       ffmpeg -i "$file" -i "$sub" \
         -map 0:v:0 -map 0:a:0 -map 1:0 -map 0:s:0 \
         -metadata:s:s:0 language=ron \
         -disposition:s:0 default \
-        -c copy -c:a libfdk_aac $af -vbr 4 \
+        $codec $af \
         -metadata title= -metadata:s:v title= -metadata:s:a title= -metadata:s:s title= \
         -max_interleave_delta 0 "$dest"
 
@@ -71,7 +73,7 @@ for file in *.mkv; do
     fi
 
   else
-    # Mode 2: explicit stream indices
+    # Explicit stream indices
     sub=""
     for srt in "${base}".*.srt "${base}.srt"; do
       if [ -f "$srt" ]; then
@@ -96,7 +98,7 @@ for file in *.mkv; do
 
     dest="${outdir:-..}/${file}"
     eval ffmpeg $inputs $maps $submeta \
-      -c copy -c:a libfdk_aac $af -vbr 4 \
+      $codec $af \
       -metadata title= -metadata:s:v title= -metadata:s:a title= -metadata:s:s title= \
       -max_interleave_delta 0 "\"$dest\""
   fi
