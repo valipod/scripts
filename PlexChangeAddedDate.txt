@@ -1,0 +1,49 @@
+cp /volume1/PlexMediaServer/AppData/Plex\ Media\ Server/Plug-in\ Support/Databases/com.plexapp.plugins.library.db /volume1/PlexMediaServer/AppData/Plex\ Media\ Server/Plug-in\ Support/Databases/com.plexapp.plugins.library.db.backup
+/var/packages/PlexMediaServer/target/Plex\ Media\ Server --sqlite /volume1/PlexMediaServer/AppData/Plex\ Media\ Server/Plug-in\ Support/Databases/com.plexapp.plugins.library.db
+
+update metadata_items set added_at = originally_available_at where library_section_id is not null and title = "Yes Man";
+vacuum;
+
+
+sau defalcat:
+
+update
+    metadata_items
+set
+    added_at = originally_available_at
+where
+    library_section_id is not null
+    and title = "The Shining";
+update
+    metadata_items
+set
+    created_at = originally_available_at
+where
+    library_section_id is not null
+    and title = "The Shining";
+update
+    metadata_items
+set
+    updated_at = originally_available_at
+where
+    library_section_id is not null
+    and title = "The Shining";
+
+vacuum;
+CTRL-D
+
+
+
+https://jjwilly.com/blog/modify-plex-date-added
+
+from datetime to timestamp:
+
+import time
+import datetime
+now = datetime.now()
+timestamp = time.mktime(now.timetuple())
+
+from timestamp to datetime:
+
+import datetime
+datetime.fromtimestamp(timestamp)
