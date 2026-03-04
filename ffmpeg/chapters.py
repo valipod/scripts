@@ -2,6 +2,7 @@
 import re
 
 chapters = list()
+chap = {}
 
 with open('chapters.txt', 'r') as f:
     for line in f:
@@ -16,9 +17,8 @@ with open('chapters.txt', 'r') as f:
             minutes = (hrs * 60) + mins
             seconds = secs + (minutes * 60)
             timestamp = (seconds * 1000 + milisecs)
-            chap = {
-                "startTime": timestamp
-            }
+            chap = {}
+            chap["startTime"] = timestamp
             continue
         y = re.match(r"CHAPTER\d{2}NAME=([\S\ ]+)", line)
         if y:
