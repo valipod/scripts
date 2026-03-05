@@ -141,8 +141,10 @@ fi
 # Last positional = target, rest = inputs
 target="\"${positional[-1]}\""
 inputs=""
+input_files=()
 for ((i=0; i<${#positional[@]}-1; i++)); do
     inputs="$inputs -i \"${positional[i]}\""
+    input_files+=("${positional[i]}")
 done
 
 [ -z "$v" ]   && v="-map 0:v:0"
@@ -150,6 +152,30 @@ done
 [ -z "$s1" ]  && s1="-map 0:s:0"
 [ -z "$da1" ] && da1="-disposition:a:0 default"
 [ -z "$ds1" ] && ds1="-disposition:s:0 default"
+
+# Auto-detect subtitle language from input filenames for explicit --sN mappings
+for sn in 1 2 3 4 5 6 7; do
+    svar="s${sn}"
+    lsvar="ls${sn}"
+    [ -z "${!svar}" ] && continue
+    [ -n "${!lsvar}" ] && continue
+    # extract input index from -map N:...
+    map_idx=$(echo "${!svar}" | grep -oP '(?<=-map )\d+')
+    [ -z "$map_idx" ] && continue
+    fname="${input_files[$map_idx]}"
+    [ -z "$fname" ] && continue
+    case "${fname,,}" in
+        *.ro.*|*.rum.*|*.ron.*) lang="ron" ;;
+        *.en.*|*.eng.*)        lang="eng" ;;
+        *.fr.*|*.fre.*|*.fra.*) lang="fre" ;;
+        *.de.*|*.ger.*|*.deu.*) lang="ger" ;;
+        *.es.*|*.spa.*)        lang="spa" ;;
+        *.it.*|*.ita.*)        lang="ita" ;;
+        *.pt.*|*.por.*)        lang="por" ;;
+        *)                     lang="" ;;
+    esac
+    [ -n "$lang" ] && eval "$lsvar=\"-metadata:s:s:$((sn - 1)) language=$lang\""
+done
 
 cmd="ffmpeg$inputs $v $a1 $a2 $a3 $a4 $s1 $s2 $s3 $s4 $s5 $s6 $s7 -c copy $cv $cvc $ca1 $ca1c $ac $ca2 $ca2c $ca3 $ca3c $ca4 $ca4c $cs1 $cs2 $cs3 $cs4 $cs5 $cs6 $cs7 $lv1 $la1 $la2 $la3 $ls1 $ls2 $ls3 $ls4 $ls5 $ls6 $ls7 $da1 $da2 $da3 $ds1 $ds2 $ds3 -metadata title= -metadata:s:v title= -metadata:s:a:0 title= $ta2 $ta3 $ts1 $ts2 $ts3 $ts4 $ts5 $ts6 $ts7 -max_interleave_delta 0 $af $target"
 echo $cmd
