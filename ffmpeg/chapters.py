@@ -1,4 +1,19 @@
 #!/usr/bin/python3
+import sys
+
+if len(sys.argv) > 1 and sys.argv[1] in ('--help', '-h'):
+    print("""\
+Usage: chapters.py
+
+Convert OGM-style chapter markers to ffmpeg metadata format.
+
+Reads:   chapters.txt        (OGM format: CHAPTER01=HH:MM:SS.mmm / CHAPTER01NAME=...)
+Writes:  chapters.ffmpeg.txt (ffmpeg metadata with [CHAPTER] sections)
+
+The output file can be used with ffmpeg:
+  ffmpeg -i input.mkv -i chapters.ffmpeg.txt -map_metadata 1 -c copy output.mkv""")
+    sys.exit(0)
+
 import re
 
 chapters = list()

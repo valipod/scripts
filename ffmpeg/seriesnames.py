@@ -3,6 +3,20 @@ import os
 import re
 import sys
 
+if len(sys.argv) > 1 and sys.argv[1] in ('--help', '-h'):
+    print("""\
+Usage: seriesnames.py [v|s]
+
+Rename .mkv and matching .srt files in the current directory based on SxxExx patterns.
+
+Modes:
+  (none)  Rename both video and subtitle to SxxExx.mkv / SxxExx.ro.srt
+  v       Keep video filename, rename subtitle to <video_base>.ro.srt
+  s       Rename video to <subtitle_base>.mkv, subtitle to <subtitle_base>.ro.srt
+
+Matches .mkv files containing SxxExx patterns to .srt files with the same episode.""")
+    sys.exit(0)
+
 mode = sys.argv[1] if len(sys.argv) > 1 else None
 
 for filename in os.listdir("."):
