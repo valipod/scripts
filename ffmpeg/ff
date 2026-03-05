@@ -109,8 +109,8 @@ while [ $# -gt 0 ]; do
         --ds1) ds1="-disposition:s:0 $2"; shift 2 ;;
         --ds2) ds2="-disposition:s:1 $2"; shift 2 ;;
         --ds3) ds3="-disposition:s:2 $2"; shift 2 ;;
-        --ta2) ta2="-metadata:s:a:1 title=$2"; shift 2 ;;
-        --ta3) ta3="-metadata:s:a:2 title=$2"; shift 2 ;;
+        --ta2) ta2="-metadata:s:a:1 title=\"$2\""; shift 2 ;;
+        --ta3) ta3="-metadata:s:a:2 title=\"$2\""; shift 2 ;;
         --ts1) ts1="-metadata:s:s:0 title=\"$2\""; shift 2 ;;
         --ts2) ts2="-metadata:s:s:1 title=\"$2\""; shift 2 ;;
         --ts3) ts3="-metadata:s:s:2 title=\"$2\""; shift 2 ;;
