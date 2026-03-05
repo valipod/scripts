@@ -82,24 +82,23 @@ for file in *.mkv; do
       fi
     done
 
-    inputs="-i \"$file\""
-    maps="-map 0:v:0"
-    submeta=""
+    cmd=(ffmpeg -i "$file")
+    mapcmd=(-map 0:v:0)
 
     if [ -n "$sub" ]; then
-      inputs="$inputs -i \"$sub\""
-      maps="$maps -map 1:0"
-      submeta="-metadata:s:s:0 language=ron -disposition:s:0 default"
+      cmd+=(-i "$sub")
+      mapcmd+=(-map 1:0)
     fi
 
     for idx in "${args[@]}"; do
-      maps="$maps -map 0:$idx"
+      mapcmd+=(-map "0:$idx")
     done
 
     dest="${outdir:-..}/${file}"
-    eval ffmpeg $inputs $maps $submeta \
+    "${cmd[@]}" "${mapcmd[@]}" \
+      ${sub:+-metadata:s:s:0 language=ron -disposition:s:0 default} \
       $codec $af \
       -metadata title= -metadata:s:v title= -metadata:s:a title= -metadata:s:s title= \
-      -max_interleave_delta 0 "\"$dest\""
+      -max_interleave_delta 0 "$dest"
   fi
 done
