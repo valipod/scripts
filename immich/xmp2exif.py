@@ -34,7 +34,7 @@ def dms_to_decimal(dms):
 def main():
     argv = list(sys.argv[1:])
 
-    if argv and argv[0] in ('--help', '-h'):
+    if argv and argv[0] in ('-help', '-h'):
         print(HELP)
         sys.exit(0)
 

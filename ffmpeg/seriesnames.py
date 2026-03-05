@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-if len(sys.argv) > 1 and sys.argv[1] in ('--help', '-h'):
+if len(sys.argv) > 1 and sys.argv[1] in ('-help', '-h'):
     print("""\
 Usage: seriesnames.py [v|s]
 

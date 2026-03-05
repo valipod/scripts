@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 HELP = """\
-Usage: mkv.py [aac|dts|copy] [STREAM_INDICES...] [--out PATH]
+Usage: mkv.py [aac|dts|copy] [STREAM_INDICES...] [-out PATH]
 
 Remux all .mkv files in the current directory, merging external .srt subtitles.
 
@@ -24,17 +24,17 @@ Stream selection:
     - Maps video stream 0 plus the specified streams from the source
     - Also merges an external .srt if one exists
 
-Output (--out PATH):
-  --out dir/          Write output to dir/<original_filename>.mkv
-  --out file.mkv      Write output to that exact file path
+Output (-out PATH):
+  -out dir/          Write output to dir/<original_filename>.mkv
+  -out file.mkv      Write output to that exact file path
   (default)           Write to ../<original_filename>.mkv
 
 Examples:
   mkv.py                          Auto-detect, copy streams, output to ../
   mkv.py aac                      Auto-detect, re-encode audio to AAC
   mkv.py 0 1 2 3                  Explicit streams, copy, output to ../
-  mkv.py aac 0 1 --out /dst/      Re-encode audio, explicit streams, output to /dst/
-  mkv.py 0 1 --out "/path/to/Movie (2008).mkv"   Explicit output filename"""
+  mkv.py aac 0 1 -out /dst/      Re-encode audio, explicit streams, output to /dst/
+  mkv.py 0 1 -out "/path/to/Movie (2008).mkv"   Explicit output filename"""
 
 
 def find_srt(base):
@@ -121,7 +121,7 @@ def explicit_streams(file, base, args, codec, af, outdir):
 def main():
     argv = sys.argv[1:]
 
-    if argv and argv[0] in ('--help', '-h'):
+    if argv and argv[0] in ('-help', '-h'):
         print(HELP)
         sys.exit(0)
 
@@ -136,12 +136,12 @@ def main():
             codec = ['-c', 'copy', '-c:a', 'libfdk_aac', '-vbr', '4']
             af = ['-filter:a:0', 'aresample=async=1']
 
-    # Parse --out and stream indices
+    # Parse -out and stream indices
     outdir = None
     args = []
     i = 0
     while i < len(argv):
-        if argv[i] == '--out':
+        if argv[i] == '-out':
             outdir = argv[i + 1]
             i += 2
         else:

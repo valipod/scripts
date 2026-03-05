@@ -12,37 +12,37 @@ Positional arguments:
   OUTPUT               Output file (last bare argument)
 
 Stream mapping:
-  --v STREAM           Video stream map (default: 0:v:0)
-  --a1..a4 STREAM      Audio stream maps (default: 0:a)
-  --s1..s7 STREAM      Subtitle stream maps (default: 0:s:0)
+  -v STREAM            Video stream map (default: 0:v:0)
+  -a1..a4 STREAM       Audio stream maps (default: 0:a)
+  -s1..s7 STREAM       Subtitle stream maps (default: 0:s:0)
 
 Codecs:
-  --cv CODEC           Video codec (-c:v)
-  --cvc VALUE          Video CRF value
-  --ca1..ca4 CODEC     Audio codec (aac|ac3|mp3 have presets, or pass raw)
-  --ca1c..ca4c VALUE   Audio quality override (-q)
-  --cs1..cs7 CODEC     Subtitle codec (-c:s:N, overrides copy for that stream)
+  -cv CODEC            Video codec (-c:v)
+  -cvc VALUE           Video CRF value
+  -ca1..ca4 CODEC      Audio codec (aac|ac3|mp3 have presets, or pass raw)
+  -ca1c..ca4c VALUE    Audio quality override (-q)
+  -cs1..cs7 CODEC      Subtitle codec (-c:s:N, overrides copy for that stream)
 
 Languages:
-  --lv1 LANG           Video language metadata
-  --la1..la3 LANG      Audio language metadata
-  --ls1..ls7 LANG      Subtitle language metadata
+  -lv1 LANG            Video language metadata
+  -la1..la3 LANG       Audio language metadata
+  -ls1..ls7 LANG       Subtitle language metadata
 
 Dispositions:
-  --da1..da3 VALUE     Audio disposition (default: a:0=default)
-  --ds1..ds3 VALUE     Subtitle disposition (default: s:0=default)
+  -da1..da3 VALUE      Audio disposition (default: a:0=default)
+  -ds1..ds3 VALUE      Subtitle disposition (default: s:0=default)
 
 Titles:
-  --ta2..ta3 TITLE     Audio stream title
-  --ts1..ts7 TITLE     Subtitle stream title
+  -ta2..ta3 TITLE      Audio stream title
+  -ts1..ts7 TITLE      Subtitle stream title
 
 Other:
-  --ac VALUE           Audio channels (-ac)
-  --af                 Add async audio resampling
-  --dts                Alias for --af (async resampling for DTS sources)
+  -ac VALUE            Audio channels (-ac)
+  -af                  Add async audio resampling
+  -dts                 Alias for -af (async resampling for DTS sources)
 
 Example:
-  ff.py movie.mkv movie.ro.srt movie.en.srt --ca1 aac somepath/movie.mkv"""
+  ff.py movie.mkv movie.ro.srt movie.en.srt -ca1 aac somepath/movie.mkv"""
 
 AUDIO_PRESETS = {
     'aac': ('libfdk_aac', ['-vbr', '4']),
@@ -75,18 +75,18 @@ def parse_args(argv):
     i = 0
     while i < len(argv):
         arg = argv[i]
-        if arg in ('--help', '-h'):
+        if arg in ('-help', '-h'):
             print(HELP)
             sys.exit(0)
         if arg == '--':
             positional.extend(argv[i + 1:])
             break
-        if arg in ('--af', '--dts'):
+        if arg in ('-af', '-dts'):
             opts['af'] = ['-filter:a:0', 'aresample=async=1']
             i += 1
             continue
-        if arg.startswith('--'):
-            key = arg[2:]
+        if arg.startswith('-'):
+            key = arg[1:]
             if i + 1 >= len(argv):
                 print(f"Option {arg} requires a value", file=sys.stderr)
                 sys.exit(1)

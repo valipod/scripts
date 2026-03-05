@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import sys
 
-if len(sys.argv) > 1 and sys.argv[1] in ('--help', '-h'):
+if len(sys.argv) > 1 and sys.argv[1] in ('-help', '-h'):
     print("""\
 Usage: chapters.py
 

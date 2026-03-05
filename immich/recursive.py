@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import sys
 
-if len(sys.argv) > 1 and sys.argv[1] in ('--help', '-h'):
+if len(sys.argv) > 1 and sys.argv[1] in ('-help', '-h'):
     print("""\
 Usage: recursive.py <script_name> [script_parameters...]
 
