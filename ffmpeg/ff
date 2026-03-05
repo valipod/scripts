@@ -18,6 +18,7 @@ Codecs:
   --cvc VALUE          Video CRF value
   --ca1..ca4 CODEC     Audio codec (aac|ac3|mp3 have presets, or pass raw)
   --ca1c..ca4c VALUE   Audio quality override (-q)
+  --cs1..cs7 CODEC     Subtitle codec (-c:s:N, overrides copy for that stream)
 
 Languages:
   --lv1 LANG           Video language metadata
@@ -117,6 +118,13 @@ while [ $# -gt 0 ]; do
         --ts5) ts5="-metadata:s:s:4 title=\"$2\""; shift 2 ;;
         --ts6) ts6="-metadata:s:s:5 title=\"$2\""; shift 2 ;;
         --ts7) ts7="-metadata:s:s:6 title=\"$2\""; shift 2 ;;
+        --cs1) cs1="-c:s:0 $2"; shift 2 ;;
+        --cs2) cs2="-c:s:1 $2"; shift 2 ;;
+        --cs3) cs3="-c:s:2 $2"; shift 2 ;;
+        --cs4) cs4="-c:s:3 $2"; shift 2 ;;
+        --cs5) cs5="-c:s:4 $2"; shift 2 ;;
+        --cs6) cs6="-c:s:5 $2"; shift 2 ;;
+        --cs7) cs7="-c:s:6 $2"; shift 2 ;;
         --ac)  ac="-ac $2"; shift 2 ;;
         --af)  af="-af aresample=async=1"; shift ;;
         --)    shift; positional+=("$@"); break ;;
@@ -143,7 +151,7 @@ done
 [ -z "$da1" ] && da1="-disposition:a:0 default"
 [ -z "$ds1" ] && ds1="-disposition:s:0 default"
 
-cmd="ffmpeg$inputs $v $a1 $a2 $a3 $a4 $s1 $s2 $s3 $s4 $s5 $s6 $s7 -c copy $cv $cvc $ca1 $ca1c $ac $ca2 $ca2c $ca3 $ca3c $ca4 $ca4c $lv1 $la1 $la2 $la3 $ls1 $ls2 $ls3 $ls4 $ls5 $ls6 $ls7 $da1 $da2 $da3 $ds1 $ds2 $ds3 -metadata title= -metadata:s:v title= -metadata:s:a:0 title= $ta2 $ta3 $ts1 $ts2 $ts3 $ts4 $ts5 $ts6 $ts7 -max_interleave_delta 0 $af $target"
+cmd="ffmpeg$inputs $v $a1 $a2 $a3 $a4 $s1 $s2 $s3 $s4 $s5 $s6 $s7 -c copy $cv $cvc $ca1 $ca1c $ac $ca2 $ca2c $ca3 $ca3c $ca4 $ca4c $cs1 $cs2 $cs3 $cs4 $cs5 $cs6 $cs7 $lv1 $la1 $la2 $la3 $ls1 $ls2 $ls3 $ls4 $ls5 $ls6 $ls7 $da1 $da2 $da3 $ds1 $ds2 $ds3 -metadata title= -metadata:s:v title= -metadata:s:a:0 title= $ta2 $ta3 $ts1 $ts2 $ts3 $ts4 $ts5 $ts6 $ts7 -max_interleave_delta 0 $af $target"
 echo $cmd
 read -p "Press enter to continue"
 eval $cmd
