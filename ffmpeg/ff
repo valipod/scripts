@@ -36,6 +36,7 @@ Titles:
 Other:
   --ac VALUE           Audio channels (-ac)
   --af                 Add async audio resampling
+  --dts                Alias for --af (async resampling for DTS sources)
 
 Example:
   ff movie.mkv movie.ro.srt movie.en.srt --ca1 aac somepath/movie.mkv
@@ -127,6 +128,7 @@ while [ $# -gt 0 ]; do
         --cs7) cs7="-c:s:6 $2"; shift 2 ;;
         --ac)  ac="-ac $2"; shift 2 ;;
         --af)  af="-af aresample=async=1"; shift ;;
+        --dts) af="-af aresample=async=1"; shift ;;
         --)    shift; positional+=("$@"); break ;;
         --*)   echo "Unknown option: $1"; exit 1 ;;
         *)     positional+=("$1"); shift ;;
@@ -165,7 +167,7 @@ for sn in 1 2 3 4 5 6 7; do
     fname="${input_files[$map_idx]}"
     [ -z "$fname" ] && continue
     case "${fname,,}" in
-        *.ro.*|*.rum.*|*.ron.*) lang="ron" ;;
+        *.ro.*|*.rum.*|*.rou.*|*.rom.*|*.ron.*) lang="ron" ;;
         *.en.*|*.eng.*)        lang="eng" ;;
         *.fr.*|*.fre.*|*.fra.*) lang="fre" ;;
         *.de.*|*.ger.*|*.deu.*) lang="ger" ;;
