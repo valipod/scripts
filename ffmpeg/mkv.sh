@@ -40,7 +40,7 @@ codec="-c copy"
 af=""
 case "$1" in
   aac) codec="-c copy -c:a libfdk_aac -vbr 4"; shift ;;
-  dts) codec="-c copy -c:a libfdk_aac -vbr 4"; af="-af aresample=async=1"; shift ;;
+  dts) codec="-c copy -c:a libfdk_aac -vbr 4"; af="-filter:a:0 aresample=async=1"; shift ;;
   copy) shift ;;
 esac
 

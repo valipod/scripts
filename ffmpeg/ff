@@ -127,8 +127,8 @@ while [ $# -gt 0 ]; do
         --cs6) cs6="-c:s:5 $2"; shift 2 ;;
         --cs7) cs7="-c:s:6 $2"; shift 2 ;;
         --ac)  ac="-ac $2"; shift 2 ;;
-        --af)  af="-af aresample=async=1"; shift ;;
-        --dts) af="-af aresample=async=1"; shift ;;
+        --af)  af="-filter:a:0 aresample=async=1"; shift ;;
+        --dts) af="-filter:a:0 aresample=async=1"; shift ;;
         --)    shift; positional+=("$@"); break ;;
         --*)   echo "Unknown option: $1"; exit 1 ;;
         *)     positional+=("$1"); shift ;;
