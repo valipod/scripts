@@ -44,17 +44,13 @@ def main():
     print("--------------------------------------------------------")
 
     if single_file:
-        base = single_file.removesuffix('.xmp')
+        base = single_file[:-4] if single_file.lower().endswith('.xmp') else single_file
         xmp_files = [f"{base}.xmp"] if os.path.isfile(f"{base}.xmp") else []
     else:
         xmp_files = sorted(glob.glob('*.xmp') + glob.glob('*.XMP'))
 
     for xmp_file in xmp_files:
-        image_file = xmp_file.removesuffix('.xmp').removesuffix('.XMP')
-        if xmp_file.endswith('.XMP'):
-            image_file = xmp_file[:-4]
-        else:
-            image_file = xmp_file[:-4]
+        image_file = xmp_file[:-4]
 
         xmp_name = os.path.basename(xmp_file)
         image_name = os.path.basename(image_file)
