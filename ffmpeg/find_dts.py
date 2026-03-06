@@ -14,11 +14,7 @@ DTS audio streams (dts, dts-hd, truehd).
 Output: one line per match showing the file path and DTS stream details.""")
     sys.exit(0)
 
-if len(sys.argv) < 2:
-    print("Usage: find_dts.py PATH", file=sys.stderr)
-    sys.exit(1)
-
-root = sys.argv[1]
+root = sys.argv[1] if len(sys.argv) > 1 else '.'
 
 for dirpath, _dirs, files in os.walk(root):
     for fname in sorted(files):
