@@ -23,14 +23,16 @@ if len(sys.argv) < 2:
 script_name = sys.argv[1]
 script_params = sys.argv[2:]
 
-if not shutil.which(script_name):
+found = shutil.which(script_name)
+if not found:
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), script_name)
     if os.path.isfile(script_path):
-        script_name = script_path
+        found = script_path
     else:
         print(f"Error: Script '{sys.argv[1]}' not found in PATH or script directory.",
               file=sys.stderr)
         sys.exit(1)
+script_name = os.path.realpath(found)
 
 root_dir = os.getcwd()
 
