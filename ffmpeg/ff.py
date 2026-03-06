@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import re
+import shlex
 import subprocess
 import sys
 
@@ -240,7 +241,7 @@ def main():
     opts, positional = parse_args(sys.argv[1:])
     cmd = build_cmd(opts, positional)
 
-    print(' '.join(cmd))
+    print(shlex.join(cmd))
     input("Press enter to continue")
     sys.exit(subprocess.call(cmd))
 
