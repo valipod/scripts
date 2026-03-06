@@ -41,7 +41,7 @@ for dirpath, _dirs, files in os.walk(root):
         dts_streams = []
         for stream in data.get('streams', []):
             codec = stream.get('codec_name', '').lower()
-            if codec in ('dts', 'dca'):
+            if codec in ('dts', 'dca', 'flac'):
                 profile = stream.get('profile', '')
                 dts_streams.append(profile if profile else 'DTS')
             elif codec == 'truehd':
