@@ -56,6 +56,18 @@ while [ $# -gt 0 ]; do
   fi
 done
 
+detect_lang() {
+  case "${1,,}" in
+    *.ro.*|*.rum.*|*.rou.*|*.rom.*|*.ron.*) echo "ron" ;;
+    *.en.*|*.eng.*)        echo "eng" ;;
+    *.fr.*|*.fre.*|*.fra.*) echo "fre" ;;
+    *.de.*|*.ger.*|*.deu.*) echo "ger" ;;
+    *.es.*|*.spa.*)        echo "spa" ;;
+    *.it.*|*.ita.*)        echo "ita" ;;
+    *.pt.*|*.por.*)        echo "por" ;;
+  esac
+}
+
 shopt -s nullglob
 for file in *.mkv; do
   base="${file%.mkv}"
@@ -88,9 +100,11 @@ for file in *.mkv; do
       else
         dest="${outdir:-..}/${file}"
       fi
+      lang0=$(detect_lang "$ro_srt")
+      lang1=$(detect_lang "$en_srt")
       ffmpeg -i "$file" -i "$ro_srt" -i "$en_srt" \
         -map 0:v:0 -map 0:a:0 -map 1:0 -map 2:0 \
-        -metadata:s:s:0 language=ron -metadata:s:s:1 language=eng \
+        ${lang0:+-metadata:s:s:0 language="$lang0"} ${lang1:+-metadata:s:s:1 language="$lang1"} \
         -disposition:s:0 default \
         $codec $af \
         -metadata title= -metadata:s:v title= -metadata:s:a title= -metadata:s:s title= \
@@ -104,9 +118,10 @@ for file in *.mkv; do
       else
         dest="${outdir:-..}/${file}"
       fi
+      sublang=$(detect_lang "$sub")
       ffmpeg -i "$file" -i "$sub" \
         -map 0:v:0 -map 0:a:0 -map 1:0 -map 0:s:0 \
-        -metadata:s:s:0 language=ron \
+        ${sublang:+-metadata:s:s:0 language="$sublang"} \
         -disposition:s:0 default \
         $codec $af \
         -metadata title= -metadata:s:v title= -metadata:s:a title= -metadata:s:s title= \
@@ -128,10 +143,12 @@ for file in *.mkv; do
 
     cmd=(ffmpeg -i "$file")
     mapcmd=(-map 0:v:0)
+    sublang=""
 
     if [ -n "$sub" ]; then
       cmd+=(-i "$sub")
       mapcmd+=(-map 1:0)
+      sublang=$(detect_lang "$sub")
     fi
 
     for idx in "${args[@]}"; do
@@ -144,7 +161,7 @@ for file in *.mkv; do
       dest="${outdir:-..}/${file}"
     fi
     "${cmd[@]}" "${mapcmd[@]}" \
-      ${sub:+-metadata:s:s:0 language=ron -disposition:s:0 default} \
+      ${sub:+${sublang:+-metadata:s:s:0 language="$sublang"} -disposition:s:0 default} \
       $codec $af \
       -metadata title= -metadata:s:v title= -metadata:s:a title= -metadata:s:s title= \
       -max_interleave_delta 0 "$dest"
