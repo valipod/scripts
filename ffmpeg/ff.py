@@ -20,7 +20,9 @@ Stream mapping:
 Codecs:
   -cv CODEC            Video codec (-c:v)
   -cvc VALUE           Video CRF value
-  -ca1..ca4 CODEC      Audio codec (aac|ac3|mp3 have presets, or pass raw)
+  -ca CODEC            Audio codec for all audio streams (-c:a)
+  -cac VALUE           Audio quality override for all audio streams (-q:a)
+  -ca1..ca4 CODEC      Audio codec for one stream (overrides -ca)
   -ca1c..ca4c VALUE    Audio quality override (-q)
   -cs1..cs7 CODEC      Subtitle codec (-c:s:N, overrides copy for that stream)
 
@@ -60,6 +62,11 @@ LANG_PATTERNS = [
     (r'\.it\.|\.ita\.', 'ita'),
     (r'\.pt\.|\.por\.', 'por'),
 ]
+
+
+def audio_codec(flag, value):
+    codec, extra = AUDIO_PRESETS.get(value, (value, []))
+    return [flag, codec] + extra
 
 
 def detect_lang(filename):
@@ -140,16 +147,17 @@ def build_cmd(opts, positional):
         cmd += ['-crf', opts['cvc']]
 
     # Audio codecs
+    if 'ca' in opts:
+        cmd += audio_codec('-c:a', opts['ca'])
+    if 'cac' in opts:
+        cmd += ['-q:a', opts['cac']]
+
+    # Per-stream audio codecs, applied after -ca so they win
     for n in range(1, 5):
         ca_key = f'ca{n}'
         cac_key = f'ca{n}c'
         if ca_key in opts:
-            preset = AUDIO_PRESETS.get(opts[ca_key])
-            if preset:
-                codec, extra = preset
-                cmd += [f'-c:a:{n - 1}', codec] + extra
-            else:
-                cmd += [f'-c:a:{n - 1}', opts[ca_key]]
+            cmd += audio_codec(f'-c:a:{n - 1}', opts[ca_key])
         if cac_key in opts:
             cmd += ['-q', opts[cac_key]]
 
